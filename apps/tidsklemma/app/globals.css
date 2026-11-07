@@ -366,3 +366,4 @@ fieldset.kort legend { padding: 0 4px; }
 .omfang { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .tid-rad { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
 .tid-rad .felt { width: auto; flex: 1; margin: 0; padding: 10px 12px; }
+.kodefelt { font-size: 28px; letter-spacing: 0.3em; text-align: center; font-variant-numeric: tabular-nums; }

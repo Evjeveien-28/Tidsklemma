@@ -54,7 +54,7 @@ export function Innlogging({ epostFeil }: { epostFeil: boolean }) {
       </label>
       <input id="email" name="email" type="email" required autoComplete="email" className="felt" />
       <button type="submit" className="primar">
-        Send innloggingslenke
+        Send kode
       </button>
       {epostFeil && <p className="feil">Det gikk ikke. Sjekk adressen, eller be noen i husstanden om å invitere deg.</p>}
     </form>
