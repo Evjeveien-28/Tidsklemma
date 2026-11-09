@@ -124,7 +124,6 @@ label { display: block; }
   margin: 6px 0 12px;
 }
 .felt::placeholder { color: #9c8670; }
-.kodefelt { font-size: 28px; letter-spacing: 0.3em; text-align: center; font-variant-numeric: tabular-nums; }
 
 /* Kort */
 .kort { background: var(--krem-mork); border: 2px solid var(--brun); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
