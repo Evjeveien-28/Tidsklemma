@@ -1,23 +1,13 @@
+import Link from "next/link";
 import { createClient } from "@hjem/db/server";
 import { DatabaseFeil } from "../../database-feil";
-import { hentPersoner } from "../../husstand/personer";
+import { alder, hentPersoner } from "../../husstand/personer";
 import { hentHusstand } from "../../planter/data";
 import { Side } from "../../side";
 import { endreButikker, fjernAllergi, lagreInnstillinger, leggTilAllergi } from "../actions";
-import { BUTIKKER, butikkNavn } from "../butikker";
+import { ButikkRekkefolge } from "../butikk-rekkefolge";
+import { BUTIKKER } from "../butikker";
 import { GRADER, HANDTERINGER, hentAllergier, hentInnstillinger, UKEDAGER } from "../data";
-
-function ButikkKnapp({ kode, hva, tekst, etikett }: { kode: string; hva: string; tekst: string; etikett: string }) {
-  return (
-    <form action={endreButikker}>
-      <input type="hidden" name="kode" value={kode} />
-      <input type="hidden" name="hva" value={hva} />
-      <button type="submit" className="liten-pil" aria-label={etikett}>
-        {tekst}
-      </button>
-    </form>
-  );
-}
 
 export default async function Innstillinger({ searchParams }: { searchParams: Promise<{ lagret?: string; feil?: string }> }) {
   const { lagret, feil } = await searchParams;
@@ -47,19 +37,21 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
       {lagret && <p className="dempet">Lagret.</p>}
       {feil === "1" && <p className="feil">Det gikk ikke å lagre. Prøv igjen.</p>}
 
-      <form action={lagreInnstillinger}>
+      <section className="kort">
         <p className="kt">Hvem spiser</p>
-        <div className="to-felt">
-          <label>
-            <span className="dempet liten">Voksne</span>
-            <input name="voksne" type="number" inputMode="numeric" min={0} max={20} defaultValue={inn.voksne} className="felt" />
-          </label>
-          <label>
-            <span className="dempet liten">Barn, alder</span>
-            <input name="barn" defaultValue={inn.barn_alder.join(", ")} placeholder="F.eks. 4, 9" className="felt" />
-          </label>
-        </div>
+        <p style={{ margin: "2px 0 6px" }}>
+          {personer.map((p) => `${p.navn}${alder(p) != null ? ` (${alder(p)})` : ""}`).join(", ")}
+        </p>
+        <p className="dempet liten" style={{ margin: 0 }}>
+          Alle i husstanden. Fødselsår settes under{" "}
+          <Link href="/husstand" className="inline-knapp" style={{ minHeight: 0 }}>
+            Husstand
+          </Link>
+          . Gjester og fravær velger du i ukesplanen.
+        </p>
+      </section>
 
+      <form action={lagreInnstillinger}>
         <fieldset className="gruppe">
           <legend className="kt">Dager med forslag</legend>
           <div className="chips">
@@ -110,11 +102,6 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
           Kroner. Handlelisten foreslår bare å fordele handelen når den blir så mye billigere.
         </p>
 
-        <label htmlFor="unngaa" className="kt">
-          Mat vi ikke spiser <span className="valgfritt">(ikke allergi)</span>
-        </label>
-        <input id="unngaa" name="unngaa" maxLength={500} defaultValue={inn.unngaa} placeholder="F.eks. lever, sopp" className="felt" />
-
         <label htmlFor="onsker" className="kt">
           Ønsker <span className="valgfritt">(valgfritt)</span>
         </label>
@@ -135,19 +122,7 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
 
       <section className="kort" id="butikker" style={{ marginTop: 22 }}>
         <p className="kt">Butikker, i prioritert rekkefølge</p>
-        <ol className="butikkliste">
-          {inn.butikker.map((kode, i) => (
-            <li key={kode}>
-              <span className="butikk-nr">{i + 1}</span>
-              <b>{butikkNavn(kode)}</b>
-              <span className="butikk-knapper">
-                {i > 0 && <ButikkKnapp kode={kode} hva="opp" tekst="↑" etikett={`Flytt ${butikkNavn(kode)} opp`} />}
-                {i < inn.butikker.length - 1 && <ButikkKnapp kode={kode} hva="ned" tekst="↓" etikett={`Flytt ${butikkNavn(kode)} ned`} />}
-                {inn.butikker.length > 1 && <ButikkKnapp kode={kode} hva="fjern" tekst="✕" etikett={`Fjern ${butikkNavn(kode)}`} />}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <ButikkRekkefolge key={inn.butikker.join()} butikker={inn.butikker} />
         {ledige.length > 0 && (
           <form action={endreButikker} className="tid-rad">
             <input type="hidden" name="hva" value="legg-til" />
@@ -166,7 +141,7 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
             </button>
           </form>
         )}
-        <p className="dempet liten">Tilbud i butikkene øverst foretrekkes, og de velges først når handelen fordeles.</p>
+        <p className="dempet liten">Hold i ⠿ og dra for å endre rekkefølgen. Tilbud i butikkene øverst foretrekkes, og de velges først når handelen fordeles.</p>
       </section>
 
       <section className="kort" id="allergier">

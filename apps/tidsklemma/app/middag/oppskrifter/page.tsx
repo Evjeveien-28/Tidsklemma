@@ -3,11 +3,12 @@ import { createClient } from "@hjem/db/server";
 import { DatabaseFeil } from "../../database-feil";
 import { hentHusstand } from "../../planter/data";
 import { Side } from "../../side";
-import { hentOppskrifter, type Oppskrift } from "../data";
+import { alleMerkelapper, hentOppskrifter, type Oppskrift } from "../data";
 import { Bilde } from "../bilde";
 import { Stjerne } from "../stjerne";
 
-export default async function Oppskrifter() {
+export default async function Oppskrifter({ searchParams }: { searchParams: Promise<{ merkelapp?: string }> }) {
+  const { merkelapp } = await searchParams;
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
   const tilbake = { href: "/middag", navn: "Middag" };
@@ -28,8 +29,24 @@ export default async function Oppskrifter() {
     );
   }
 
+  const merkelapper = alleMerkelapper(liste);
+  const valgt = merkelapp && merkelapper.includes(merkelapp) ? merkelapp : null;
+  const vis = valgt ? liste.filter((o) => o.merkelapper.includes(valgt)) : liste;
+
   return (
     <Side tittel="Oppskrifter" tilbake={tilbake} handling={pluss}>
+      {merkelapper.length > 0 && (
+        <nav className="merkelapp-filter" aria-label="Filtrer på merkelapp">
+          <Link href="/middag/oppskrifter" className="merkelapp" aria-current={valgt ? undefined : "page"}>
+            Alle
+          </Link>
+          {merkelapper.map((m) => (
+            <Link key={m} href={`/middag/oppskrifter?merkelapp=${encodeURIComponent(m)}`} className="merkelapp" aria-current={valgt === m ? "page" : undefined}>
+              {m}
+            </Link>
+          ))}
+        </nav>
+      )}
       {liste.length === 0 ? (
         <div className="kort stiplet">
           <p className="kt">Ingen oppskrifter ennå</p>
@@ -37,7 +54,7 @@ export default async function Oppskrifter() {
         </div>
       ) : (
         <ul className="oliste">
-          {liste.map((o) => (
+          {vis.map((o) => (
             <li key={o.id} className="orad">
               <Link href={`/middag/oppskrifter/${o.id}`} className="olenke">
                 <span className="obilde">

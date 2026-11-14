@@ -1,31 +1,27 @@
 import type { createClient } from "@hjem/db/server";
 
+export { lesMerkelapper } from "./lese";
+
 type Klient = Awaited<ReturnType<typeof createClient>>;
 
 export type Innstillinger = {
-  voksne: number;
-  barn_alder: number[];
   dager: number[];
   butikker: string[];
   maks_butikker: number;
   min_besparelse: number;
   postnummer: string | null;
   hverdag_minutter: number;
-  unngaa: string;
   onsker: string;
   aktiv: boolean;
 };
 
 export const STANDARD: Innstillinger = {
-  voksne: 2,
-  barn_alder: [],
   dager: [1, 2, 3, 4, 5, 6, 7],
   butikker: ["KIWI"],
   maks_butikker: 1,
   min_besparelse: 50,
   postnummer: null,
   hverdag_minutter: 45,
-  unngaa: "",
   onsker: "",
   aktiv: false,
 };
@@ -103,12 +99,10 @@ export async function hentOppskrifter(supabase: Klient, husstand: string): Promi
   return data as Oppskrift[];
 }
 
-/** «4, 9» → [4, 9]. */
-export function lesAldre(tekst: string): number[] {
-  return (tekst.match(/\d+/g) ?? []).map(Number).filter((n) => n >= 0 && n < 18).slice(0, 12);
-}
 
-/** «Middag, rask; vegetar» → ["middag", "rask", "vegetar"]. */
-export function lesMerkelapper(tekst: string): string[] {
-  return [...new Set(tekst.split(/[,;]/).map((m) => m.trim().toLowerCase()).filter(Boolean))].slice(0, 12).map((m) => m.slice(0, 30));
+/** Merkelappene som er brukt i kokeboka, mest brukte først. */
+export function alleMerkelapper(oppskrifter: Pick<Oppskrift, "merkelapper">[]): string[] {
+  const antall = new Map<string, number>();
+  for (const o of oppskrifter) for (const m of o.merkelapper) antall.set(m, (antall.get(m) ?? 0) + 1);
+  return [...antall].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "nb")).map(([m]) => m);
 }

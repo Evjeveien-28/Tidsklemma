@@ -24,7 +24,7 @@ body {
   padding: 14px;
 }
 a { color: inherit; }
-button, input { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--lyseblaa); outline-offset: 2px; }
 
 /* Appen: topplinje over rammen, rammen fyller resten */
@@ -124,6 +124,20 @@ label { display: block; }
   margin: 6px 0 12px;
 }
 .felt::placeholder { color: #9c8670; }
+/* Dropdowns ser ut som de andre feltene, med egen pil, også på iPhone. */
+select.felt {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 54px;
+  padding-right: 42px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23734623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+textarea.felt { resize: vertical; }
+/* Felt på rad med en knapp har samme størrelse som de andre feltene. */
+.tid-rad input.felt, .tid-rad select.felt { min-width: 0; padding-top: 14px; padding-bottom: 14px; padding-left: 14px; }
+.tid-rad select.felt { padding-right: 42px; }
 
 /* Kort */
 .kort { background: var(--krem-mork); border: 2px solid var(--brun); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }

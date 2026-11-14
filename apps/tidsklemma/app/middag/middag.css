@@ -12,7 +12,6 @@
 .ingredienser li { padding: 3px 0; }
 .fremgang { margin: 0 0 14px; padding-left: 22px; }
 .fremgang li { padding: 4px 0; }
-textarea.felt { font: inherit; resize: vertical; }
 .avkryss { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; cursor: pointer; }
 .avkryss input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--avokado); flex: none; }
 .avkryss span { display: flex; flex-direction: column; }
@@ -31,3 +30,10 @@ textarea.felt { font: inherit; resize: vertical; }
 .ny-allergi summary { cursor: pointer; list-style: none; margin: 4px 0 8px; }
 .ny-allergi summary::-webkit-details-marker { display: none; }
 .ny-allergi .radio { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.handtak { width: 40px; height: 40px; border: 0; background: none; font-size: 22px; color: var(--dempet); cursor: grab; touch-action: none; }
+.handtak:active { cursor: grabbing; }
+.butikkliste li.drar { background: var(--felt); box-shadow: 0 4px 12px rgba(74, 46, 28, 0.18); border-radius: 8px; position: relative; z-index: 1; }
+.merkelapp-forslag, .merkelapp-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
+.merkelapp-filter { margin: 0 0 10px; }
+.merkelapp { display: inline-flex; align-items: center; min-height: 34px; padding: 4px 12px; border-radius: 17px; border: 1.5px solid #cdbba5; background: var(--felt); font-size: 15px; color: var(--valnott); text-decoration: none; cursor: pointer; }
+.merkelapp[aria-current="page"] { background: var(--avokado); border-color: var(--avokado); color: #fff; font-weight: 600; }

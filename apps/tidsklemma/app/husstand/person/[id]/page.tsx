@@ -17,7 +17,7 @@ export default async function EndrePerson({
 
   const supabase = await createClient();
   const [{ data: person }, { data: meg }] = await Promise.all([
-    supabase.from("household_people").select("id, household_id, user_id, navn, farge").eq("id", id).maybeSingle(),
+    supabase.from("household_people").select("id, household_id, user_id, navn, farge, fodselsar").eq("id", id).maybeSingle(),
     supabase.auth.getClaims(),
   ]);
   if (!person) notFound();
@@ -39,6 +39,24 @@ export default async function EndrePerson({
         ) : (
           <p className="dempet">{person.navn} har app og setter navnet sitt selv under Meg.</p>
         )}
+
+        <label htmlFor="fodselsar" className="kt">
+          Fødselsår <span className="valgfritt">(valgfritt)</span>
+        </label>
+        <input
+          id="fodselsar"
+          name="fodselsar"
+          type="number"
+          inputMode="numeric"
+          min={1900}
+          max={new Date().getFullYear()}
+          defaultValue={person.fodselsar ?? ""}
+          placeholder="F.eks. 2017"
+          className="felt"
+        />
+        <p className="dempet liten" style={{ marginTop: -6 }}>
+          Brukes til å regne porsjoner i middagsplanen, og til å skille barn og voksne.
+        </p>
 
         <fieldset className="fargevalg">
           <legend className="kt">Farge</legend>
