@@ -28,11 +28,6 @@ export default async function Hjem() {
   // Levende tekst og rød prikk på flisene som har noe å melde.
   const status: Record<string, { tekst: string; antall: number }> = {};
   if (husstand) {
-    const [planter, kalender] = await Promise.all([
-      hentPlanter(supabase, husstand.id).catch(() => null),
-      kalenderStatus(supabase, husstand.id).catch(() => null),
-    ]);
-    if (kalender) status.familiekalender = kalender;
     const handleliste = await hentHandleliste(supabase, husstand.id).catch(() => null);
     if (handleliste) {
       const igjen = handleliste.filter((v) => !v.avkrysset_at);
@@ -40,7 +35,12 @@ export default async function Hjem() {
       status.handleliste = {
         antall: 0,
         tekst: igjen.length === 0 ? "Tom" : `${igjen.length} ${igjen.length === 1 ? "vare" : "varer"}${sum > 0 ? ` · ca. ${kr(sum, true)} kr` : ""}`,
-      };
+      };    const [planter, kalender] = await Promise.all([
+      hentPlanter(supabase, husstand.id).catch(() => null),
+      kalenderStatus(supabase, husstand.id).catch(() => null),
+    ]);
+    if (kalender) status.familiekalender = kalender;
+
     }
     if (planter) {
       const antall = planter.filter((p) => p.trengerVann).length;
