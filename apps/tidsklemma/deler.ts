@@ -10,6 +10,7 @@ export const deler: {
   /** Flisfarge på startsiden. Uten farge går flisene på rundgang: brun, lyseblå, grønn, krem. */
   farge?: "brun" | "blaa" | "gronn" | "krem";
 }[] = [
+  { slug: "middag", navn: "Middag", beskrivelse: "Oppskrifter og ukesmeny", ikon: "middag", farge: "krem" },
   { slug: "familiekalender", navn: "Familie\nkalender", beskrivelse: "Hvem skal hvor", ikon: "kalender", farge: "blaa" },
   { slug: "planter", navn: "Planter", beskrivelse: "Vanning", ikon: "plante", farge: "gronn" },
 ];
