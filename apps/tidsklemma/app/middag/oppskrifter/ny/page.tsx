@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { createClient } from "@hjem/db/server";
+import { hentHusstand } from "../../../planter/data";
+import { alleMerkelapper, hentOppskrifter } from "../../data";
 import { Side } from "../../../side";
 import { leggTilFraLenke } from "../../actions";
 import { OppskriftSkjema } from "../../oppskrift-skjema";
@@ -14,10 +17,13 @@ export default async function NyOppskrift({ searchParams }: { searchParams: Prom
   const { manuell, feil, lenke } = await searchParams;
   const tilbake = { href: "/middag/oppskrifter", navn: "Oppskrifter" };
   if (manuell) {
+    const supabase = await createClient();
+    const husstand = await hentHusstand(supabase);
+    const brukte = husstand ? alleMerkelapper(await hentOppskrifter(supabase, husstand.id).catch(() => [])) : [];
     return (
       <Side tittel="Ny oppskrift" tilbake={tilbake}>
         {feil && <p className="feil">{feiltekst[feil]}</p>}
-        <OppskriftSkjema />
+        <OppskriftSkjema brukte={brukte} />
       </Side>
     );
   }

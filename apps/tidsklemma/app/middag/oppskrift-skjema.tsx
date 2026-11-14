@@ -1,8 +1,9 @@
 import { lagreOppskrift } from "./actions";
 import type { Oppskrift } from "./data";
+import { MerkelappFelt } from "./merkelapp-felt";
 
 /** Skjema for ny oppskrift skrevet inn for hånd, og for å endre en oppskrift. */
-export function OppskriftSkjema({ o }: { o?: Oppskrift }) {
+export function OppskriftSkjema({ o, brukte }: { o?: Oppskrift; brukte: string[] }) {
   return (
     <form action={lagreOppskrift}>
       {o && <input type="hidden" name="oppskrift" value={o.id} />}
@@ -32,10 +33,7 @@ export function OppskriftSkjema({ o }: { o?: Oppskrift }) {
       </label>
       <textarea id="fremgangsmaate" name="fremgangsmaate" rows={6} defaultValue={o?.fremgangsmaate} className="felt" />
 
-      <label htmlFor="merkelapper" className="kt">
-        Merkelapper <span className="valgfritt">(skill med komma)</span>
-      </label>
-      <input id="merkelapper" name="merkelapper" defaultValue={o?.merkelapper.join(", ")} placeholder="rask, vegetar, barnevennlig" className="felt" />
+      <MerkelappFelt start={o?.merkelapper ?? []} brukte={brukte} />
 
       <label htmlFor="lenke" className="kt">
         Lenke <span className="valgfritt">(valgfritt)</span>

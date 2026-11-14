@@ -1,5 +1,7 @@
 import type { createClient } from "@hjem/db/server";
 
+export { lesMerkelapper } from "./lese";
+
 type Klient = Awaited<ReturnType<typeof createClient>>;
 
 export type Innstillinger = {
@@ -97,7 +99,10 @@ export async function hentOppskrifter(supabase: Klient, husstand: string): Promi
   return data as Oppskrift[];
 }
 
-/** «Middag, rask; vegetar» → ["middag", "rask", "vegetar"]. */
-export function lesMerkelapper(tekst: string): string[] {
-  return [...new Set(tekst.split(/[,;]/).map((m) => m.trim().toLowerCase()).filter(Boolean))].slice(0, 12).map((m) => m.slice(0, 30));
+
+/** Merkelappene som er brukt i kokeboka, mest brukte først. */
+export function alleMerkelapper(oppskrifter: Pick<Oppskrift, "merkelapper">[]): string[] {
+  const antall = new Map<string, number>();
+  for (const o of oppskrifter) for (const m of o.merkelapper) antall.set(m, (antall.get(m) ?? 0) + 1);
+  return [...antall].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "nb")).map(([m]) => m);
 }
