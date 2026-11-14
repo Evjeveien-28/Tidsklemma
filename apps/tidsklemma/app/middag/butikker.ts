@@ -1,4 +1,7 @@
-/** Matbutikkene vi kan hente tilbud og priser fra. Koden er den Kassalapp bruker, Tjek-id er kjeden i eTilbudsavis. */
+/**
+ * Matbutikkene vi kan hente tilbud og priser fra. Koden er den Kassalapp bruker, Tjek-id er kjeden i eTilbudsavis.
+ * Oda er en nettbutikk uten kundeavis: prisene og tilbudene hentes fra søket på oda.com når menyen lages.
+ */
 export const BUTIKKER = [
   { kode: "KIWI", navn: "Kiwi", tjek: "257bxm" },
   { kode: "REMA_1000", navn: "Rema 1000", tjek: "faa0Ym" },
@@ -10,6 +13,7 @@ export const BUTIKKER = [
   { kode: "SPAR_NO", navn: "Spar", tjek: "c062vm" },
   { kode: "JOKER_NO", navn: "Joker", tjek: "b3e8Fm" },
   { kode: "BUNNPRIS", navn: "Bunnpris", tjek: "5b11sm" },
+  { kode: "ODA_NO", navn: "Oda", tjek: null },
 ] as const;
 
 export function butikkNavn(kode: string): string {

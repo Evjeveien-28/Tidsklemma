@@ -47,7 +47,7 @@ export async function hentTilbud(butikker: string[], lat: number, lng: number): 
   const ut: NyttTilbud[] = [];
   for (const kode of butikker) {
     const kjede = BUTIKKER.find((b) => b.kode === kode);
-    if (!kjede) continue;
+    if (!kjede?.tjek) continue;
     for (let side = 0; side < 10; side++) {
       const url = `https://squid-api.tjek.com/v2/offers?dealer_ids=${kjede.tjek}&r_lat=${lat}&r_lng=${lng}&r_radius=20000&r_locale=nb_NO&limit=100&offset=${side * 100}`;
       let liste: TjekTilbud[];
