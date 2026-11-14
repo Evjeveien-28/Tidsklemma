@@ -10,6 +10,9 @@ export type Innstillinger = {
   maks_butikker: number;
   min_besparelse: number;
   postnummer: string | null;
+  sted: string | null;
+  lat: number | null;
+  lng: number | null;
   hverdag_minutter: number;
   onsker: string;
   aktiv: boolean;
@@ -21,6 +24,9 @@ export const STANDARD: Innstillinger = {
   maks_butikker: 1,
   min_besparelse: 50,
   postnummer: null,
+  sted: null,
+  lat: null,
+  lng: null,
   hverdag_minutter: 45,
   onsker: "",
   aktiv: false,
@@ -105,4 +111,37 @@ export function alleMerkelapper(oppskrifter: Pick<Oppskrift, "merkelapper">[]): 
   const antall = new Map<string, number>();
   for (const o of oppskrifter) for (const m of o.merkelapper) antall.set(m, (antall.get(m) ?? 0) + 1);
   return [...antall].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "nb")).map(([m]) => m);
+}
+
+export type Tilbud = {
+  id: string;
+  butikk: string;
+  navn: string;
+  beskrivelse: string;
+  pris: number;
+  forpris: number | null;
+  mengde_fra: number | null;
+  mengde_til: number | null;
+  enhet: string | null;
+  gyldig_fra: string;
+  gyldig_til: string;
+  bilde_url: string | null;
+  hentet_at: string;
+};
+
+export async function hentTilbudFraDb(supabase: Klient, husstand: string): Promise<Tilbud[]> {
+  const alle: Tilbud[] = [];
+  // PostgREST gir høyst 1000 rader om gangen.
+  for (let fra = 0; ; fra += 1000) {
+    const { data, error } = await supabase
+      .schema("middag")
+      .from("tilbud")
+      .select("id, butikk, navn, beskrivelse, pris, forpris, mengde_fra, mengde_til, enhet, gyldig_fra, gyldig_til, bilde_url, hentet_at")
+      .eq("household_id", husstand)
+      .order("navn")
+      .range(fra, fra + 999);
+    if (error) throw new Error(error.message);
+    alle.push(...(data as Tilbud[]).map((t) => ({ ...t, pris: Number(t.pris), forpris: t.forpris == null ? null : Number(t.forpris) })));
+    if (data.length < 1000) return alle;
+  }
 }

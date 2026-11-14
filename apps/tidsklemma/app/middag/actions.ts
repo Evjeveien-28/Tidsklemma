@@ -7,6 +7,7 @@ import { hentHusstand } from "../planter/data";
 import { BUTIKKER } from "./butikker";
 import { GRADER, HANDTERINGER, hentInnstillinger, lesMerkelapper } from "./data";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
+import { hentPosisjon, hentTilbud } from "./tilbud-hent";
 
 async function husstanden() {
   const supabase = await createClient();
@@ -27,13 +28,23 @@ export async function lagreInnstillinger(fd: FormData) {
   const { db, hid } = await husstanden();
   const dager = fd.getAll("dag").map(Number).filter((d) => d >= 1 && d <= 7);
   const postnummer = tekst(fd, "postnummer", 4);
+  const gyldig = /^\d{4}$/.test(postnummer);
+  const { data: forrige } = await db.from("innstillinger").select("postnummer, lat").eq("household_id", hid).maybeSingle();
+  // Slå opp posisjonen bare når postnummeret er nytt, eller ikke er slått opp før.
+  const posisjon =
+    gyldig && (forrige?.postnummer !== postnummer || forrige?.lat == null)
+      ? await hentPosisjon(postnummer)
+      : undefined;
   const { error } = await db.from("innstillinger").upsert(
     {
+      ...(posisjon !== undefined || !gyldig
+        ? { sted: posisjon?.sted ?? null, lat: posisjon?.lat ?? null, lng: posisjon?.lng ?? null }
+        : {}),
       household_id: hid,
       dager: dager.length ? dager : [1, 2, 3, 4, 5, 6, 7],
       maks_butikker: tall(fd, "maks_butikker", 1, 3, 1),
       min_besparelse: tall(fd, "min_besparelse", 0, 10000, 50),
-      postnummer: /^\d{4}$/.test(postnummer) ? postnummer : null,
+      postnummer: gyldig ? postnummer : null,
       hverdag_minutter: tall(fd, "hverdag_minutter", 10, 240, 45),
       onsker: tekst(fd, "onsker", 1000),
       aktiv: fd.get("aktiv") === "1",
@@ -192,4 +203,20 @@ export async function slettOppskrift(fd: FormData) {
   await db.from("oppskrifter").delete().eq("id", String(fd.get("oppskrift") ?? ""));
   revalidatePath("/middag", "layout");
   redirect("/middag/oppskrifter");
+}
+
+/** Henter ukens tilbud nå, i stedet for å vente til natten. */
+export async function hentTilbudNa() {
+  const { db, hid } = await husstanden();
+  const { data } = await db.from("innstillinger").select("butikker, lat, lng").eq("household_id", hid).maybeSingle();
+  if (!data?.lat || !data.lng) redirect("/middag/tilbud?feil=sted");
+  const tilbud = await hentTilbud(data.butikker as string[], data.lat as number, data.lng as number);
+  if (tilbud.length === 0) redirect("/middag/tilbud?feil=tomt");
+  await db.from("tilbud").delete().eq("household_id", hid);
+  for (let i = 0; i < tilbud.length; i += 500) {
+    const { error } = await db.from("tilbud").insert(tilbud.slice(i, i + 500).map((t) => ({ household_id: hid, ...t })));
+    if (error) redirect("/middag/tilbud?feil=lagre");
+  }
+  revalidatePath("/middag", "layout");
+  redirect("/middag/tilbud");
 }
