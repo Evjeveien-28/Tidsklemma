@@ -12,7 +12,6 @@
 .ingredienser li { padding: 3px 0; }
 .fremgang { margin: 0 0 14px; padding-left: 22px; }
 .fremgang li { padding: 4px 0; }
-textarea.felt { font: inherit; resize: vertical; }
 .avkryss { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; cursor: pointer; }
 .avkryss input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--avokado); flex: none; }
 .avkryss span { display: flex; flex-direction: column; }
