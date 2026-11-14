@@ -1,6 +1,7 @@
 import type { createClient } from "@hjem/db/server";
 
 export { lesMerkelapper } from "./lese";
+import type { Meny } from "./meny";
 
 type Klient = Awaited<ReturnType<typeof createClient>>;
 
@@ -144,4 +145,31 @@ export async function hentTilbudFraDb(supabase: Klient, husstand: string): Promi
     alle.push(...(data as Tilbud[]).map((t) => ({ ...t, pris: Number(t.pris), forpris: t.forpris == null ? null : Number(t.forpris) })));
     if (data.length < 1000) return alle;
   }
+}
+
+export type Bestilling = { id: string; uke_start: string; status: "venter" | "jobber" | "ferdig" | "feil"; melding: string | null; bestilt_av: string | null; created_at: string };
+
+export async function hentMeny(supabase: Klient, husstand: string, uke: string): Promise<Meny | null> {
+  const { data, error } = await supabase
+    .schema("middag")
+    .from("menyer")
+    .select("id, uke_start, data, valg, laget_at")
+    .eq("household_id", husstand)
+    .eq("uke_start", uke)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as Meny | null;
+}
+
+export async function hentSisteBestilling(supabase: Klient, husstand: string, uke: string): Promise<Bestilling | null> {
+  const { data } = await supabase
+    .schema("middag")
+    .from("bestillinger")
+    .select("id, uke_start, status, melding, bestilt_av, created_at")
+    .eq("household_id", husstand)
+    .eq("uke_start", uke)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as Bestilling | null) ?? null;
 }

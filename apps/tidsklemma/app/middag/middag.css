@@ -45,3 +45,24 @@
 .tpris { text-align: right; flex: none; display: flex; flex-direction: column; align-items: flex-end; }
 .tpris b { font-size: 18px; font-variant-numeric: tabular-nums; }
 .tpris s { color: var(--dempet); font-size: 13px; }
+.mdager { list-style: none; margin: 0; padding: 0; }
+.mdag { padding: 12px 0; border-bottom: 1px solid #e6d9c2; scroll-margin-top: 20px; }
+.mdag .kt { margin: 0 0 2px; }
+.mrett { display: block; font-size: 20px; font-weight: 600; text-decoration: none; }
+.mgrunn { display: block; color: #4c5a24; font-size: 14px; }
+.mtilpass { display: block; color: var(--dempet); font-size: 14px; }
+.mtilpass::before { content: "↺ "; }
+.mbytt summary { list-style: none; cursor: pointer; min-height: 36px; }
+.mbytt summary::-webkit-details-marker { display: none; }
+.mbytt .radio { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.mbytt .felt { margin: 4px 0 10px; }
+.mhandel { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-decoration: none; margin-top: 16px; }
+.mhandel b { display: block; font-size: 17px; }
+.mlag { display: block; text-align: center; text-decoration: none; margin-top: 4px; }
+.mvalg { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px dashed #d9c9b0; }
+.mvalg input { margin-top: 4px; accent-color: var(--avokado); }
+.mvalg small { display: block; }
+.pdag .felt { margin: 4px 0 8px; }
+.pdag legend { padding: 0 4px; }
+.gjester { display: inline-flex; align-items: center; gap: 6px; color: var(--dempet); }
+.gjester .felt { width: 64px; margin: 0; padding: 8px 10px; }
