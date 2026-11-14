@@ -81,7 +81,9 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
           </label>
         </div>
         <p className="dempet liten" style={{ marginTop: -6 }}>
-          Postnummeret brukes til å finne tilbud i butikker i nærheten.
+          {inn.postnummer && !inn.lat
+            ? "Fant ikke postnummeret. Sjekk at det stemmer."
+            : `Brukes til å finne tilbud i butikker i nærheten${inn.sted ? ` (${inn.sted})` : ""}.`}
         </p>
 
         <div className="to-felt">

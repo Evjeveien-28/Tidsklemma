@@ -4,7 +4,7 @@ import { DatabaseFeil } from "../database-feil";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
 import { butikkNavn } from "./butikker";
-import { hentInnstillinger, hentOppskrifter, UKEDAGER } from "./data";
+import { hentInnstillinger, hentOppskrifter, hentTilbudFraDb, UKEDAGER } from "./data";
 
 const tilbake = { href: "/", navn: "Tilbake" };
 
@@ -18,9 +18,13 @@ export default async function Middag() {
       </Side>
     );
   }
-  let oppskrifter, inn;
+  let oppskrifter, inn, tilbud;
   try {
-    [oppskrifter, inn] = await Promise.all([hentOppskrifter(supabase, husstand.id), hentInnstillinger(supabase, husstand.id)]);
+    [oppskrifter, inn, tilbud] = await Promise.all([
+      hentOppskrifter(supabase, husstand.id),
+      hentInnstillinger(supabase, husstand.id),
+      hentTilbudFraDb(supabase, husstand.id).catch(() => []),
+    ]);
   } catch (e) {
     return (
       <Side tittel="Middag" tilbake={tilbake}>
@@ -29,6 +33,8 @@ export default async function Middag() {
     );
   }
   const favoritter = oppskrifter.filter((o) => o.favoritt).length;
+  const naa = new Date().toISOString();
+  const gyldige = tilbud.filter((t) => t.gyldig_til >= naa).length;
 
   return (
     <Side tittel="Middag" tilbake={tilbake}>
@@ -46,6 +52,15 @@ export default async function Middag() {
               {oppskrifter.length === 0
                 ? "Ingen ennå"
                 : `${oppskrifter.length} ${oppskrifter.length === 1 ? "oppskrift" : "oppskrifter"}${favoritter ? `, ${favoritter} med stjerne` : ""}`}
+            </small>
+          </span>
+          <span aria-hidden="true">›</span>
+        </Link>
+        <Link href="/middag/tilbud" className="meg-lenke">
+          <span>
+            Ukens tilbud
+            <small className="dempet liten" style={{ display: "block" }}>
+              {!inn.lat ? "Legg inn postnummer i innstillingene" : gyldige ? `${gyldige} tilbud i nærheten av ${inn.sted ?? inn.postnummer}` : "Hentes i natt"}
             </small>
           </span>
           <span aria-hidden="true">›</span>
