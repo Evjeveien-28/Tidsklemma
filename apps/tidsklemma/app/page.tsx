@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@hjem/db/server";
 import { kalenderStatus } from "./familiekalender/status";
+import { anslag, hentVarer as hentHandleliste, kr } from "./handleliste/data";
 import { hentPlanter } from "./planter/data";
 import { deler } from "../deler";
 import { Ikon } from "./ikoner";
@@ -27,6 +28,15 @@ export default async function Hjem() {
   // Levende tekst og rød prikk på flisene som har noe å melde.
   const status: Record<string, { tekst: string; antall: number }> = {};
   if (husstand) {
+    const handleliste = await hentHandleliste(supabase, husstand.id).catch(() => null);
+    if (handleliste) {
+      const igjen = handleliste.filter((v) => !v.avkrysset_at);
+      const sum = igjen.reduce((a, v) => a + (anslag(v) ?? 0), 0);
+      status.handleliste = {
+        antall: 0,
+        tekst: igjen.length === 0 ? "Tom" : `${igjen.length} ${igjen.length === 1 ? "vare" : "varer"}${sum > 0 ? ` · ca. ${kr(sum, true)} kr` : ""}`,
+      };
+    }
     const [planter, kalender] = await Promise.all([
       hentPlanter(supabase, husstand.id).catch(() => null),
       kalenderStatus(supabase, husstand.id).catch(() => null),
