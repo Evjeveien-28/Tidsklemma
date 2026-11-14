@@ -5,20 +5,9 @@ import { alder, hentPersoner } from "../../husstand/personer";
 import { hentHusstand } from "../../planter/data";
 import { Side } from "../../side";
 import { endreButikker, fjernAllergi, lagreInnstillinger, leggTilAllergi } from "../actions";
-import { BUTIKKER, butikkNavn } from "../butikker";
+import { ButikkRekkefolge } from "../butikk-rekkefolge";
+import { BUTIKKER } from "../butikker";
 import { GRADER, HANDTERINGER, hentAllergier, hentInnstillinger, UKEDAGER } from "../data";
-
-function ButikkKnapp({ kode, hva, tekst, etikett }: { kode: string; hva: string; tekst: string; etikett: string }) {
-  return (
-    <form action={endreButikker}>
-      <input type="hidden" name="kode" value={kode} />
-      <input type="hidden" name="hva" value={hva} />
-      <button type="submit" className="liten-pil" aria-label={etikett}>
-        {tekst}
-      </button>
-    </form>
-  );
-}
 
 export default async function Innstillinger({ searchParams }: { searchParams: Promise<{ lagret?: string; feil?: string }> }) {
   const { lagret, feil } = await searchParams;
@@ -133,19 +122,7 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
 
       <section className="kort" id="butikker" style={{ marginTop: 22 }}>
         <p className="kt">Butikker, i prioritert rekkefølge</p>
-        <ol className="butikkliste">
-          {inn.butikker.map((kode, i) => (
-            <li key={kode}>
-              <span className="butikk-nr">{i + 1}</span>
-              <b>{butikkNavn(kode)}</b>
-              <span className="butikk-knapper">
-                {i > 0 && <ButikkKnapp kode={kode} hva="opp" tekst="↑" etikett={`Flytt ${butikkNavn(kode)} opp`} />}
-                {i < inn.butikker.length - 1 && <ButikkKnapp kode={kode} hva="ned" tekst="↓" etikett={`Flytt ${butikkNavn(kode)} ned`} />}
-                {inn.butikker.length > 1 && <ButikkKnapp kode={kode} hva="fjern" tekst="✕" etikett={`Fjern ${butikkNavn(kode)}`} />}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <ButikkRekkefolge key={inn.butikker.join()} butikker={inn.butikker} />
         {ledige.length > 0 && (
           <form action={endreButikker} className="tid-rad">
             <input type="hidden" name="hva" value="legg-til" />
@@ -164,7 +141,7 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
             </button>
           </form>
         )}
-        <p className="dempet liten">Tilbud i butikkene øverst foretrekkes, og de velges først når handelen fordeles.</p>
+        <p className="dempet liten">Hold i ⠿ og dra for å endre rekkefølgen. Tilbud i butikkene øverst foretrekkes, og de velges først når handelen fordeles.</p>
       </section>
 
       <section className="kort" id="allergier">

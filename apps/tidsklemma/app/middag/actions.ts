@@ -64,6 +64,16 @@ export async function endreButikker(fd: FormData) {
   redirect(`${TIL_INNSTILLINGER}#butikker`);
 }
 
+/** Ny rekkefølge etter at butikkene er dratt rundt. Må være de samme butikkene som før. */
+export async function sorterButikker(koder: string[]) {
+  const { supabase, db, hid } = await husstanden();
+  const forrige = (await hentInnstillinger(supabase, hid)).butikker;
+  if (koder.length !== forrige.length || !koder.every((k) => forrige.includes(k))) return false;
+  const { error } = await db.from("innstillinger").upsert({ household_id: hid, butikker: koder, updated_at: new Date().toISOString() }, { onConflict: "household_id" });
+  revalidatePath("/middag", "layout");
+  return !error;
+}
+
 export async function leggTilAllergi(fd: FormData) {
   const { db, hid } = await husstanden();
   const navn = tekst(fd, "navn", 60);

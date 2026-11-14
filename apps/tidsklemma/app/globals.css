@@ -135,6 +135,9 @@ select.felt {
   background-position: right 16px center;
 }
 textarea.felt { resize: vertical; }
+/* Felt på rad med en knapp har samme størrelse som de andre feltene. */
+.tid-rad input.felt, .tid-rad select.felt { min-width: 0; padding-top: 14px; padding-bottom: 14px; padding-left: 14px; }
+.tid-rad select.felt { padding-right: 42px; }
 
 /* Kort */
 .kort { background: var(--krem-mork); border: 2px solid var(--brun); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
@@ -376,4 +379,4 @@ fieldset.kort legend { padding: 0 4px; }
 .gjentas { color: var(--dempet); font-weight: 400; font-size: 15px; }
 .omfang { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .tid-rad { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
-.tid-rad .felt { width: auto; flex: 1; min-width: 0; margin: 0; }
+.tid-rad .felt { width: auto; flex: 1; margin: 0; padding: 10px 12px; }

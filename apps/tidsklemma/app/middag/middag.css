@@ -30,3 +30,6 @@
 .ny-allergi summary { cursor: pointer; list-style: none; margin: 4px 0 8px; }
 .ny-allergi summary::-webkit-details-marker { display: none; }
 .ny-allergi .radio { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.handtak { width: 40px; height: 40px; border: 0; background: none; font-size: 22px; color: var(--dempet); cursor: grab; touch-action: none; }
+.handtak:active { cursor: grabbing; }
+.butikkliste li.drar { background: var(--felt); box-shadow: 0 4px 12px rgba(74, 46, 28, 0.18); border-radius: 8px; position: relative; z-index: 1; }
