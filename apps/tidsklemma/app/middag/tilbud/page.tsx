@@ -77,12 +77,15 @@ export default async function UkensTilbud({ searchParams }: { searchParams: Prom
             <Link href={lenke(null)} className="merkelapp" aria-current={valgt ? undefined : "page"}>
               Alle
             </Link>
-            {inn.butikker.map((b) => (
+            {inn.butikker.filter((b) => b !== "ODA_NO").map((b) => (
               <Link key={b} href={lenke(b)} className="merkelapp" aria-current={valgt === b ? "page" : undefined}>
                 {butikkNavn(b)} ({gyldige.filter((t) => t.butikk === b).length})
               </Link>
             ))}
           </nav>
+          {inn.butikker.includes("ODA_NO") && (
+            <p className="dempet liten">Oda har ikke kundeavis. Prisene og tilbudene der sjekkes når menyen lages.</p>
+          )}
           <form className="tid-rad" style={{ marginBottom: 12 }}>
             {valgt && <input type="hidden" name="butikk" value={valgt} />}
             <label htmlFor="q" className="visuelt-skjult">
