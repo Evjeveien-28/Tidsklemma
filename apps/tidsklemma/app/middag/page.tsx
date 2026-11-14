@@ -34,8 +34,8 @@ export default async function Middag() {
     <Side tittel="Middag" tilbake={tilbake}>
       <div className="kort stiplet">
         <p className="kt">Ukesmeny</p>
-        <p>Kommer snart: forslag til middager ut fra ukens tilbud, med handleliste.</p>
-        <p className="dempet liten">Legg gjerne inn oppskriftene deres i mellomtiden, så kan forslagene bruke dem.</p>
+        <p>Kommer snart: forslag til middager fra kokeboka deres, ut fra ukens tilbud, med handleliste.</p>
+        <p className="dempet liten">Menyen velger bare blant oppskriftene dere har lagt inn, så legg gjerne inn favorittene i mellomtiden.</p>
       </div>
 
       <nav className="meg-meny" aria-label="Middag">
