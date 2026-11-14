@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentHusstand } from "../planter/data";
 import { BUTIKKER } from "./butikker";
-import { GRADER, HANDTERINGER, hentInnstillinger, lesAldre, lesMerkelapper } from "./data";
+import { GRADER, HANDTERINGER, hentInnstillinger, lesMerkelapper } from "./data";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 
 async function husstanden() {
@@ -30,14 +30,11 @@ export async function lagreInnstillinger(fd: FormData) {
   const { error } = await db.from("innstillinger").upsert(
     {
       household_id: hid,
-      voksne: tall(fd, "voksne", 0, 20, 2),
-      barn_alder: lesAldre(tekst(fd, "barn", 100)),
       dager: dager.length ? dager : [1, 2, 3, 4, 5, 6, 7],
       maks_butikker: tall(fd, "maks_butikker", 1, 3, 1),
       min_besparelse: tall(fd, "min_besparelse", 0, 10000, 50),
       postnummer: /^\d{4}$/.test(postnummer) ? postnummer : null,
       hverdag_minutter: tall(fd, "hverdag_minutter", 10, 240, 45),
-      unngaa: tekst(fd, "unngaa", 500),
       onsker: tekst(fd, "onsker", 1000),
       aktiv: fd.get("aktiv") === "1",
       updated_at: new Date().toISOString(),

@@ -3,7 +3,7 @@ import { createClient } from "@hjem/db/server";
 import Link from "next/link";
 import { inviter, leggTilPerson, trekkTilbake } from "./actions";
 import { DatabaseFeil } from "../database-feil";
-import { hentPersoner, type Person } from "./personer";
+import { alder, hentPersoner, type Person } from "./personer";
 import { Side } from "../side";
 import { DelInvitasjon } from "./del-invitasjon";
 
@@ -64,7 +64,9 @@ export default async function Husstand({
                       {p.navn}
                       {p.user_id && p.user_id === minId && <em className="dempet"> (deg)</em>}
                     </b>
-                    <small>{p.user_id ? (epost.get(p.user_id) ?? "Har app") : "Uten app"}</small>
+                    <small>
+                      {[alder(p) != null && `${alder(p)} år`, p.user_id ? (epost.get(p.user_id) ?? "Har app") : "Uten app"].filter(Boolean).join(" · ")}
+                    </small>
                   </span>
                   <span className="pil" aria-hidden="true">›</span>
                 </Link>

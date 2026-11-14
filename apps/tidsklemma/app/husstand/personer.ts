@@ -14,12 +14,12 @@ export const FARGER = [
   { hex: "#c98c8c", navn: "Rosa" },
 ] as const;
 
-export type Person = { id: string; household_id: string; user_id: string | null; navn: string; farge: string };
+export type Person = { id: string; household_id: string; user_id: string | null; navn: string; farge: string; fodselsar: number | null };
 
 export async function hentPersoner(supabase: Klient, husstand: string): Promise<Person[]> {
   const { data, error } = await supabase
     .from("household_people")
-    .select("id, household_id, user_id, navn, farge")
+    .select("id, household_id, user_id, navn, farge, fodselsar")
     .eq("household_id", husstand)
     .order("created_at")
     .order("navn");
@@ -33,4 +33,9 @@ export function ledigFarge(personer: Person[]) {
 
 export function rensNavn(verdi: FormDataEntryValue | null) {
   return String(verdi ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+}
+
+/** Alder i år i år, eller null når fødselsåret mangler. */
+export function alder(p: Pick<Person, "fodselsar">, iAr = new Date().getFullYear()): number | null {
+  return p.fodselsar ? iAr - p.fodselsar : null;
 }

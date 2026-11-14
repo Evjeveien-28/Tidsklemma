@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { createClient } from "@hjem/db/server";
 import { DatabaseFeil } from "../../database-feil";
-import { hentPersoner } from "../../husstand/personer";
+import { alder, hentPersoner } from "../../husstand/personer";
 import { hentHusstand } from "../../planter/data";
 import { Side } from "../../side";
 import { endreButikker, fjernAllergi, lagreInnstillinger, leggTilAllergi } from "../actions";
@@ -47,19 +48,21 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
       {lagret && <p className="dempet">Lagret.</p>}
       {feil === "1" && <p className="feil">Det gikk ikke å lagre. Prøv igjen.</p>}
 
-      <form action={lagreInnstillinger}>
+      <section className="kort">
         <p className="kt">Hvem spiser</p>
-        <div className="to-felt">
-          <label>
-            <span className="dempet liten">Voksne</span>
-            <input name="voksne" type="number" inputMode="numeric" min={0} max={20} defaultValue={inn.voksne} className="felt" />
-          </label>
-          <label>
-            <span className="dempet liten">Barn, alder</span>
-            <input name="barn" defaultValue={inn.barn_alder.join(", ")} placeholder="F.eks. 4, 9" className="felt" />
-          </label>
-        </div>
+        <p style={{ margin: "2px 0 6px" }}>
+          {personer.map((p) => `${p.navn}${alder(p) != null ? ` (${alder(p)})` : ""}`).join(", ")}
+        </p>
+        <p className="dempet liten" style={{ margin: 0 }}>
+          Alle i husstanden. Fødselsår settes under{" "}
+          <Link href="/husstand" className="inline-knapp" style={{ minHeight: 0 }}>
+            Husstand
+          </Link>
+          . Gjester og fravær velger du i ukesplanen.
+        </p>
+      </section>
 
+      <form action={lagreInnstillinger}>
         <fieldset className="gruppe">
           <legend className="kt">Dager med forslag</legend>
           <div className="chips">
@@ -109,11 +112,6 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
         <p className="dempet liten" style={{ marginTop: -6 }}>
           Kroner. Handlelisten foreslår bare å fordele handelen når den blir så mye billigere.
         </p>
-
-        <label htmlFor="unngaa" className="kt">
-          Mat vi ikke spiser <span className="valgfritt">(ikke allergi)</span>
-        </label>
-        <input id="unngaa" name="unngaa" maxLength={500} defaultValue={inn.unngaa} placeholder="F.eks. lever, sopp" className="felt" />
 
         <label htmlFor="onsker" className="kt">
           Ønsker <span className="valgfritt">(valgfritt)</span>

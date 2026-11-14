@@ -53,6 +53,8 @@ export async function endrePerson(formData: FormData) {
   const id = String(formData.get("person") ?? "");
   const farge = String(formData.get("farge") ?? "");
   const navn = rensNavn(formData.get("navn"));
+  const ar = Number(formData.get("fodselsar"));
+  const fodselsar = Number.isInteger(ar) && ar >= 1900 && ar <= new Date().getFullYear() ? ar : null;
   if (!FARGER.some((f) => f.hex === farge)) redirect(`/husstand/person/${id}?feil=1`);
 
   const supabase = await createClient();
@@ -68,7 +70,7 @@ export async function endrePerson(formData: FormData) {
 
   const { error } = await supabase
     .from("household_people")
-    .update(kanEndreNavn ? { navn, farge } : { farge })
+    .update(kanEndreNavn ? { navn, farge, fodselsar } : { farge, fodselsar })
     .eq("id", id);
   if (error) redirect(`/husstand/person/${id}?feil=1`);
   if (erMeg) {

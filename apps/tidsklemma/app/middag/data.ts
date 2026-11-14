@@ -3,29 +3,23 @@ import type { createClient } from "@hjem/db/server";
 type Klient = Awaited<ReturnType<typeof createClient>>;
 
 export type Innstillinger = {
-  voksne: number;
-  barn_alder: number[];
   dager: number[];
   butikker: string[];
   maks_butikker: number;
   min_besparelse: number;
   postnummer: string | null;
   hverdag_minutter: number;
-  unngaa: string;
   onsker: string;
   aktiv: boolean;
 };
 
 export const STANDARD: Innstillinger = {
-  voksne: 2,
-  barn_alder: [],
   dager: [1, 2, 3, 4, 5, 6, 7],
   butikker: ["KIWI"],
   maks_butikker: 1,
   min_besparelse: 50,
   postnummer: null,
   hverdag_minutter: 45,
-  unngaa: "",
   onsker: "",
   aktiv: false,
 };
@@ -101,11 +95,6 @@ export async function hentOppskrifter(supabase: Klient, husstand: string): Promi
     .order("navn");
   if (error) throw new Error(error.message);
   return data as Oppskrift[];
-}
-
-/** «4, 9» → [4, 9]. */
-export function lesAldre(tekst: string): number[] {
-  return (tekst.match(/\d+/g) ?? []).map(Number).filter((n) => n >= 0 && n < 18).slice(0, 12);
 }
 
 /** «Middag, rask; vegetar» → ["middag", "rask", "vegetar"]. */
