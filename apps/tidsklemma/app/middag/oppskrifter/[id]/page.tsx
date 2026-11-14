@@ -32,6 +32,13 @@ export default async function OppskriftSide({ params, searchParams }: { params: 
           {[meta, ...o.merkelapper, o.trygg && "trygg som den er"].filter(Boolean).join(" · ")}
         </p>
       )}
+      {o.lenke && (
+        <p style={{ margin: "-4px 0 12px" }}>
+          <a href={o.lenke} target="_blank" rel="noreferrer" className="inline-knapp" style={{ minHeight: 0 }}>
+            Åpne original ›
+          </a>
+        </p>
+      )}
 
       {o.ingredienser.length > 0 && (
         <>
@@ -55,12 +62,7 @@ export default async function OppskriftSide({ params, searchParams }: { params: 
       )}
 
       <div className="bunnknapper">
-        {o.lenke && (
-          <a href={o.lenke} target="_blank" rel="noreferrer" className="sekundar" style={{ textAlign: "center", textDecoration: "none" }}>
-            Åpne original
-          </a>
-        )}
-        <Link href={`/middag/oppskrifter/${o.id}/endre`} className="primar">
+        <Link href={`/middag/oppskrifter/${o.id}/endre`} className="sekundar" style={{ textAlign: "center", textDecoration: "none" }}>
           Endre
         </Link>
         <form action={slettOppskrift}>
