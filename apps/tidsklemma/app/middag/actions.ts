@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentHusstand } from "../planter/data";
 import { BUTIKKER } from "./butikker";
-import { GRADER, HANDTERINGER, hentInnstillinger, lesMerkelapper } from "./data";
+import { sokOda } from "../handleliste/oda";
+import { hentPersoner } from "../husstand/personer";
+import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesMerkelapper } from "./data";
+import { valgteInnkjop, valgteRetter, type Valg } from "./meny";
+import { prisHos, prisoversikt, summer } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
 
@@ -219,4 +223,123 @@ export async function hentTilbudNa() {
   }
   revalidatePath("/middag", "layout");
   redirect("/middag/tilbud");
+}
+
+// ——— Meny ———
+
+const erDato = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
+
+/** Bestill en meny for uka. Hver dag: egen oppskrift eller «la menyen foreslå», hvem som er med, og gjester. */
+export async function bestill(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  if (!erDato(uke)) redirect("/middag");
+  const { supabase, db, hid } = await husstanden();
+  const alle = (await hentPersoner(supabase, hid)).map((p) => p.id);
+  const dager = fd
+    .getAll("dato")
+    .map(String)
+    .filter(erDato)
+    .map((dato) => {
+      const med = fd.getAll(`med_${dato}`).map(String);
+      const oppskrift = String(fd.get(`oppskrift_${dato}`) ?? "");
+      return {
+        dato,
+        oppskrift_id: /^[0-9a-f-]{36}$/.test(oppskrift) ? oppskrift : null,
+        borte: alle.filter((p) => !med.includes(p)),
+        gjester: Math.min(Math.max(Math.round(Number(fd.get(`gjester_${dato}`)) || 0), 0), 30),
+      };
+    });
+  if (dager.length === 0) redirect(`/middag/planlegg?uke=${uke}&feil=dager`);
+  const { error } = await db.from("bestillinger").insert({ household_id: hid, uke_start: uke, dager });
+  revalidatePath("/middag", "layout");
+  redirect(error ? `/middag/planlegg?uke=${uke}&feil=lagre` : `/middag?uke=${uke}`);
+}
+
+async function endreValg(uke: string, endre: (v: Valg) => Valg) {
+  const { db, hid } = await husstanden();
+  const { data } = await db.from("menyer").select("valg").eq("household_id", hid).eq("uke_start", uke).maybeSingle();
+  if (!data) return;
+  await db.from("menyer").update({ valg: endre((data.valg ?? {}) as Valg) }).eq("household_id", hid).eq("uke_start", uke);
+  revalidatePath("/middag", "layout");
+}
+
+/** Velg et av alternativene, eller en egen oppskrift, for en dag. */
+export async function velgRett(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  const dato = String(fd.get("dato") ?? "");
+  const valg = String(fd.get("valg") ?? "");
+  const egen = String(fd.get("egen") ?? "");
+  if (!erDato(uke) || !erDato(dato)) redirect("/middag");
+  if (valg === "egen" && !/^[0-9a-f-]{36}$/.test(egen)) redirect(`/middag?uke=${uke}#${dato}`);
+  await endreValg(uke, (v) => ({
+    ...v,
+    dager: { ...v.dager, [dato]: valg.startsWith("alt:") ? { alt: Number(valg.slice(4)) } : { oppskrift_id: egen } },
+  }));
+  redirect(`/middag?uke=${uke}#${dato}`);
+}
+
+/** Varer vi har hjemme, tas ut av middagshandlelisten. */
+export async function settHjemme(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  const id = String(fd.get("innkjop") ?? "");
+  const pa = fd.get("pa") === "1";
+  if (!erDato(uke)) redirect("/middag");
+  await endreValg(uke, (v) => ({ ...v, har: pa ? [...new Set([...(v.har ?? []), id])] : (v.har ?? []).filter((x) => x !== id) }));
+  redirect(`/middag/handleliste?uke=${uke}`);
+}
+
+export async function velgFordeling(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  const butikker = String(fd.get("butikker") ?? "").split(",").filter(Boolean).slice(0, 3);
+  if (!erDato(uke)) redirect("/middag");
+  await endreValg(uke, (v) => ({ ...v, fordeling: butikker }));
+  redirect(`/middag/handleliste?uke=${uke}`);
+}
+
+/**
+ * Sender middagsvarene til Handleliste, med butikk etter valgt fordeling. Middagsvarer fra samme uke som ikke er
+ * krysset av, byttes ut, så man kan sende på nytt etter å ha endret menyen. Egne oppskrifter får ingrediensene sine
+ * som vanlige varer, med pris anslått fra Oda.
+ */
+export async function sendTilHandleliste(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  if (!erDato(uke)) redirect("/middag");
+  const { supabase, db, hid } = await husstanden();
+  const meny = await hentMeny(supabase, hid, uke);
+  if (!meny) redirect("/middag");
+  const inn = await hentInnstillinger(supabase, hid);
+  const innkjop = valgteInnkjop(meny);
+  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse);
+  const fordeling = meny.valg.fordeling?.length ? meny.valg.fordeling : (oversikt.billigst?.butikker ?? inn.butikker.slice(0, 1));
+  const plassering = summer(innkjop, fordeling).plassering;
+
+  const rader: Record<string, unknown>[] = innkjop.map((i) => {
+    const butikk = plassering[i.id] ?? fordeling[0]!;
+    const p = prisHos(i, butikk);
+    return {
+      household_id: hid,
+      navn: i.navn.slice(0, 120),
+      antall: 1,
+      butikk,
+      produkt: p.pris != null ? { id: 0, navn: i.priser[butikk]?.vare ?? i.navn, ekstra: i.bruk ?? "", pris: p.pris, kilopris: null, enhet: null, bilde: null, tilbud: p.tilbud ? "Tilbud" : null } : null,
+      kilde: "middag",
+      kilde_uke: uke,
+    };
+  });
+  // Egne oppskrifter: ingrediensene som de står, med pris fra Oda.
+  const egne = valgteRetter(meny).filter((r) => r.type === "egen").map((r) => (r.type === "egen" ? r.oppskrift_id : ""));
+  if (egne.length) {
+    const { data: oppskrifter } = await db.from("oppskrifter").select("id, ingredienser").in("id", egne);
+    const linjer = (oppskrifter ?? []).flatMap((o) => o.ingredienser as string[]).slice(0, 60);
+    const funnet = await Promise.all(linjer.map((l) => sokOda(l.replace(/^[\d.,/\s]+(g|kg|dl|l|ss|ts|stk\.?|pk\.?|boks|ml)?\s+/i, ""), 1)));
+    linjer.forEach((l, n) =>
+      rader.push({ household_id: hid, navn: l.slice(0, 120), antall: 1, butikk: fordeling[0] ?? null, produkt: funnet[n]![0] ?? null, kilde: "middag", kilde_uke: uke }),
+    );
+  }
+
+  const hl = supabase.schema("handleliste");
+  await hl.from("varer").delete().eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).is("avkrysset_at", null);
+  const { error } = await hl.from("varer").insert(rader);
+  revalidatePath("/", "layout");
+  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
 }

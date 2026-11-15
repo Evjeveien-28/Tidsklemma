@@ -12,11 +12,19 @@ const tilbake = { href: "/", navn: "Tilbake" };
 
 function tilRad(v: Vare, tilbud: Parameters<typeof finnTilbud>[1]): Rad {
   const pris = anslag(v);
-  const t = finnTilbud(v.navn, tilbud);
+  // Fra middagsmenyen med butikk: butikken og prisen er alt valgt der, så ikke foreslå tilbud andre steder.
+  const fraMeny = v.kilde === "middag" && v.produkt?.id === 0;
+  const t = fraMeny && v.butikk ? null : finnTilbud(v.navn, tilbud);
   return {
     id: v.id,
     tittel: `${v.antall !== 1 ? `${String(v.antall).replace(".", ",")} × ` : ""}${v.navn}`,
-    under: v.uten_pris ? null : v.produkt ? `${produktTekst(v.produkt)}${v.produkt.tilbud ? ` · Oda: ${v.produkt.tilbud}` : ""}` : "Fant ikke pris",
+    under: v.uten_pris
+      ? null
+      : fraMeny
+        ? [v.produkt!.ekstra, v.produkt!.tilbud && v.butikk && `Tilbud hos ${butikkNavn(v.butikk)}`].filter(Boolean).join(" · ") || null
+        : v.produkt
+          ? `${produktTekst(v.produkt)}${v.produkt.tilbud ? ` · Oda: ${v.produkt.tilbud}` : ""}`
+          : "Fant ikke pris",
     tilbud: t ? `Tilbud hos ${butikkNavn(t.butikk)}: ${t.navn.charAt(0) + t.navn.slice(1).toLowerCase()}, ${kr(t.pris)}` : null,
     pris: pris != null ? `ca. ${kr(pris)}` : null,
     avkrysset: v.avkrysset_at != null,
