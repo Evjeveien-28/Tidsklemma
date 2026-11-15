@@ -20,10 +20,11 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
   if (!husstand) notFound();
-  const [meny, inn, oppskrifter] = await Promise.all([
+  const [meny, inn, oppskrifter, { count: sendt }] = await Promise.all([
     hentMeny(supabase, husstand.id, uke),
     hentInnstillinger(supabase, husstand.id),
     hentOppskrifter(supabase, husstand.id),
+    supabase.schema("handleliste").from("varer").select("id", { count: "exact", head: true }).eq("household_id", husstand.id).eq("kilde", "middag").eq("kilde_uke", uke),
   ]);
   if (!meny) notFound();
 
@@ -151,9 +152,17 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
 
       <form action={sendTilHandleliste} className="bunnknapper">
         <input type="hidden" name="uke" value={uke} />
-        <SendKnapp />
+        <SendKnapp sendt={Boolean(sendt)} />
         <p className="dempet liten" style={{ textAlign: "center", margin: 0 }}>
-          Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Sender du på nytt etter å ha byttet en rett, byttes middagsvarene som ikke er krysset av. Det du har kjøpt, blir stående.
+          {sendt ? (
+            <>
+              Sendt til <Link href="/handleliste">Handleliste</Link>. Bytter du rett eller butikk, oppdateres den der også. Det du har kjøpt, blir stående.
+            </>
+          ) : (
+            <>
+              Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Bytter du rett etterpå, oppdateres listen der også.
+            </>
+          )}
         </p>
       </form>
     </Side>

@@ -17,6 +17,8 @@ import { startAgent } from "./agent/start";
 import { iDag, leggTilDager } from "../dato";
 import { mandagI } from "./uke";
 
+type Klient = Awaited<ReturnType<typeof createClient>>;
+
 async function husstanden() {
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
@@ -275,11 +277,13 @@ export async function bestill(fd: FormData) {
 }
 
 async function endreValg(uke: string, endre: (v: Valg) => Valg) {
-  const { db, hid } = await husstanden();
+  const { supabase, db, hid } = await husstanden();
   const { data } = await db.from("menyer").select("valg").eq("household_id", hid).eq("uke_start", uke).maybeSingle();
   if (!data) return;
   await db.from("menyer").update({ valg: endre((data.valg ?? {}) as Valg) }).eq("household_id", hid).eq("uke_start", uke);
-  revalidatePath("/middag", "layout");
+  // Er uka sendt til Handleliste, følger den med på endringen.
+  if (await erSendt(supabase, hid, uke)) await synkHandleliste(supabase, hid, uke);
+  revalidatePath("/", "layout");
 }
 
 /** Velg et av alternativene, eller en egen oppskrift, for en dag. */
@@ -329,9 +333,33 @@ export async function velgFordeling(fd: FormData) {
 export async function sendTilHandleliste(fd: FormData) {
   const uke = String(fd.get("uke") ?? "");
   if (!erDato(uke)) redirect("/middag");
-  const { supabase, db, hid } = await husstanden();
+  const { supabase, hid } = await husstanden();
+  const { error } = await synkHandleliste(supabase, hid, uke);
+  revalidatePath("/", "layout");
+  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
+}
+
+/** Er middagsvarene for uka sendt til Handleliste? Da holdes de oppdatert når menyen endres. */
+async function erSendt(supabase: Klient, hid: string, uke: string): Promise<boolean> {
+  const { count } = await supabase
+    .schema("handleliste")
+    .from("varer")
+    .select("id", { count: "exact", head: true })
+    .eq("household_id", hid)
+    .eq("kilde", "middag")
+    .eq("kilde_uke", uke);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Legger innkjøpene for de valgte rettene i Handleliste, med butikk. Middagsvarene for uka som ikke er kjøpt ennå,
+ * byttes ut, så listen følger menyen. Det som allerede er krysset av som kjøpt, legges ikke til en gang til.
+ * Egne oppskrifter får ingrediensene sine som vanlige varer, med pris anslått fra Oda.
+ */
+async function synkHandleliste(supabase: Klient, hid: string, uke: string): Promise<{ error: unknown }> {
+  const db = supabase.schema("middag");
   const meny = await hentMeny(supabase, hid, uke);
-  if (!meny) redirect("/middag");
+  if (!meny) return { error: "ingen meny" };
   const inn = await hentInnstillinger(supabase, hid);
   const innkjop = valgteInnkjop(meny);
   const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
@@ -363,15 +391,12 @@ export async function sendTilHandleliste(fd: FormData) {
   }
 
   const hl = supabase.schema("handleliste");
-  // Sendes listen på nytt (f.eks. etter å ha byttet en rett), byttes middagsvarene som ikke er kjøpt ennå.
-  // Det som allerede er krysset av som kjøpt, legges ikke til en gang til.
   const { data: kjopt } = await hl.from("varer").select("navn").eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).not("avkrysset_at", "is", null);
   const kjopteNavn = new Set((kjopt ?? []).map((v) => String(v.navn).toLowerCase()));
   await hl.from("varer").delete().eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).is("avkrysset_at", null);
   const nye = rader.filter((r) => !kjopteNavn.has(String(r.navn).toLowerCase()));
   const { error } = nye.length ? await hl.from("varer").insert(nye) : { error: null };
-  revalidatePath("/", "layout");
-  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
+  return { error };
 }
 
 /** Menyen lar vente på seg: start agenten igjen. Bestillingen er den samme. */
