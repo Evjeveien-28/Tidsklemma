@@ -20,12 +20,22 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
   if (!husstand) notFound();
-  const [meny, inn, { count: sendt }] = await Promise.all([
+  const [meny, inn, { count: sendt, data: sist }] = await Promise.all([
     hentMeny(supabase, husstand.id, uke),
     hentInnstillinger(supabase, husstand.id),
-    supabase.schema("handleliste").from("varer").select("id", { count: "exact", head: true }).eq("household_id", husstand.id).eq("kilde", "middag").eq("kilde_uke", uke),
+    supabase
+      .schema("handleliste")
+      .from("varer")
+      .select("created_at", { count: "exact" })
+      .eq("household_id", husstand.id)
+      .eq("kilde", "middag")
+      .eq("kilde_uke", uke)
+      .order("created_at", { ascending: false })
+      .limit(1),
   ]);
   if (!meny) notFound();
+  // Har agenten laget menyen på nytt (f.eks. etter låsing) etter at den ble sendt, må Handleliste oppdateres.
+  const utdatert = Boolean(sendt) && Boolean(sist?.[0]) && meny.laget_at > String(sist![0]!.created_at);
 
   const { innkjop, hjemme } = await ukensInnkjop(supabase, meny, inn.basisvarer);
   const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
@@ -144,9 +154,11 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
 
       <form action={sendTilHandleliste} className="bunnknapper">
         <input type="hidden" name="uke" value={uke} />
-        <SendKnapp sendt={Boolean(sendt)} />
+        <SendKnapp sendt={Boolean(sendt) && !utdatert} oppdater={utdatert} />
         <p className="dempet liten" style={{ textAlign: "center", margin: 0 }}>
-          {sendt ? (
+          {utdatert ? (
+            <>Menyen er laget på nytt etter at den ble sendt. Trykk for å oppdatere <Link href="/handleliste">Handleliste</Link>. Det du har kjøpt, blir stående.</>
+          ) : sendt ? (
             <>
               Sendt til <Link href="/handleliste">Handleliste</Link>. Bytter du rett eller butikk, oppdateres den der også. Det du har kjøpt, blir stående.
             </>

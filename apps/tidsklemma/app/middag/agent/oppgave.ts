@@ -40,7 +40,7 @@ Hver oppskrift i \`utfylling\` har \`id\`, \`navn\`, \`lenke\` og \`tekst\`: den
 Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 
 ## Hva hver bestilling inneholder
-- \`bestilling\`: \`uke_start\` (mandag) og \`dager\`. Hver dag har \`dato\`, \`oppskrift_id\` (satt hvis husstanden har valgt retten selv),
+- \`bestilling\`: \`uke_start\` (mandag), \`laas\` (se punkt 0 under) og \`dager\`. Hver dag har \`dato\`, \`oppskrift_id\` (satt hvis husstanden har valgt retten selv),
   \`borte\` (person-id-er som ikke spiser) og \`gjester\` (antall ekstra).
 - \`innstillinger\`: \`butikker\` i prioritert rekkefølge (koder som KIWI, COOP_EXTRA, REMA_1000, ODA_NO), \`maks_butikker\`,
   \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag), \`onsker\` (fritekst) og \`basisvarer\` (det de alltid har hjemme).
@@ -51,7 +51,9 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 - \`tidligere\`: menyene de siste fire ukene, med hva husstanden valgte (\`valg.dager[dato].alt\` er indeksen, eller \`oppskrift_id\` for egen rett; uten valg gjelder alternativ 0).
 
 ## Slik lager du menyen
-1. **Hvem spiser**: for hver dag er \`personer\` = husstanden minus \`borte\`, pluss \`gjester\`. Bruk det til mengdene.
+0. **Låst ukesplan**: har bestillingen \`"laas": true\`, har husstanden allerede bestemt rettene. Hver dag har \`oppskrift_id\` og \`personer\`.
+   Lag nøyaktig ett alternativ per dag: den valgte retten. Ikke foreslå noe annet. Gjør resten (innkjøp, mengder, rester, priser og tilbud) like grundig som ellers, og bruk \`begrunnelse\` til det som er nyttig å vite om prisen, f.eks. «Kjøttdeig på tilbud hos Kiwi».
+1. **Hvem spiser**: for hver dag er \`personer\` = husstanden minus \`borte\`, pluss \`gjester\`. Har dagen \`personer\` fra før, bruk det tallet. Bruk det til mengdene.
 2. **Valgt rett**: har dagen \`oppskrift_id\`, er det eneste alternativ den dagen. Ellers lag tre alternativer, det beste først.
    **Fri dag**: har dagen \`"fri": true\`, vil husstanden ikke lage middag (de spiser rester, er ute e.l.). Ta med dagen med \`"fri": true\` og to enkle alternativer i tilfelle de ombestemmer seg, men planlegg uka som om det ikke lages middag den dagen.
 3. **Allergier**:

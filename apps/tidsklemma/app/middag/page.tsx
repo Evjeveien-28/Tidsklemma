@@ -4,7 +4,7 @@ import { iDag, leggTilDager } from "../dato";
 import { DatabaseFeil } from "../database-feil";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
-import { startPaNytt, velgRett } from "./actions";
+import { lasOpp, lasUka, startPaNytt, velgRett } from "./actions";
 import { agentKlar } from "./agent/start";
 import { butikkNavn } from "./butikker";
 import { hentInnstillinger, hentMeny, hentOppskrifter, hentSisteBestilling, hentTilbudFraDb, UKEDAGER } from "./data";
@@ -56,6 +56,8 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
   const naa = new Date().toISOString();
   const gyldige = tilbud.filter((t) => t.gyldig_til >= naa).length;
   const venter = bestilling && (bestilling.status === "venter" || bestilling.status === "jobber") && (!meny || bestilling.created_at > meny.laget_at);
+  // Låst: rettene er bestemt. Mens en låsing pågår, er de det også.
+  const laast = Boolean(meny?.valg.laast) || Boolean(venter && bestilling?.laas);
   const feilet = bestilling?.status === "feil" && (!meny || bestilling.created_at > meny.laget_at);
   const retter = meny ? valgteRetter(meny) : [];
   const navnPa = new Map(oppskrifter.map((o) => [o.id, o.navn]));
@@ -75,14 +77,16 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
                 <p className="kt">{dagTekst(r.dag.dato)}</p>
                 <span className="mrett mfri">Ingen middag</span>
                 <small className="dempet">Rester, middag ute eller noe annet</small>
-                <form action={velgRett}>
-                  <input type="hidden" name="uke" value={uke} />
-                  <input type="hidden" name="dato" value={r.dag.dato} />
-                  <input type="hidden" name="valg" value={`alt:0`} />
-                  <button type="submit" className="inline-knapp">
-                    Lag middag likevel
-                  </button>
-                </form>
+                {!laast && (
+                  <form action={velgRett}>
+                    <input type="hidden" name="uke" value={uke} />
+                    <input type="hidden" name="dato" value={r.dag.dato} />
+                    <input type="hidden" name="valg" value={`alt:0`} />
+                    <button type="submit" className="inline-knapp">
+                      Lag middag likevel
+                    </button>
+                  </form>
+                )}
               </li>
             );
           const egen = r.type === "egen";
@@ -107,7 +111,8 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
                   {t}
                 </small>
               ))}
-              {egen && <small className="dempet">Egen oppskrift, prisen anslås når den sendes til handlelisten</small>}
+              {egen && <small className="dempet">Egen oppskrift{laast ? "" : ", pris anslått fra Oda. Lås ukesplanen for å få med tilbud"}</small>}
+              {!laast && (
               <details className="mbytt">
                 <summary className="inline-knapp">Bytt</summary>
                 <form action={velgRett}>
@@ -149,6 +154,7 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
                   </button>
                 </form>
               </details>
+              )}
             </li>
           );
         })}
@@ -185,14 +191,20 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
       </nav>
       <p className="dempet liten" style={{ marginTop: -6 }}>
         {ukeTekst(uke)}
+        {meny?.valg.laast && " · Låst"}
       </p>
 
       {venter && (
         <div className="kort mplanlegges" role="status">
           <Oppdater />
-          <p className="kt">Under planlegging</p>
+          <p className="kt">{bestilling!.laas ? "Handlelisten lages" : "Under planlegging"}</p>
           <p>
-            {meny ? "En ny ukesplan lages og erstatter den gamle." : "Ukesplanen lages."} Bestilt {tid.format(new Date(bestilling!.created_at))}.{" "}
+            {bestilling!.laas
+              ? "Agenten sjekker priser, tilbud og rester for rettene dere har valgt."
+              : meny
+                ? "En ny ukesplan lages og erstatter den gamle."
+                : "Ukesplanen lages."}{" "}
+            Bestilt {tid.format(new Date(bestilling!.created_at))}.{" "}
             {agentKlar() ? "Den er klar om noen minutter, og du får et varsel." : "Den lages søndag kveld, når agenten kjører fast."}
           </p>
           {agentKlar() && Date.now() - new Date(bestilling!.created_at).getTime() > 20 * 60_000 && (
@@ -213,7 +225,7 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
       )}
 
       {meny &&
-        (venter ? (
+        (venter && !bestilling?.laas ? (
           <details className="mgammel">
             <summary>Vis forrige ukesplan</summary>
             {menyInnhold}
@@ -239,7 +251,37 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
         </div>
       )}
 
-      {!venter && igjen && (
+      {meny && !venter && (
+        <div className="kort mlaas">
+          {meny.valg.laast ? (
+            <>
+              <p className="kt">Ukesplanen er låst</p>
+              <p className="dempet liten">Handlelisten er laget for rettene over, med tilbud og rester. Lås opp for å bytte retter.</p>
+              <form action={lasOpp}>
+                <input type="hidden" name="uke" value={uke} />
+                <button type="submit" className="inline-knapp">
+                  Lås opp
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className="kt">Fornøyd med rettene?</p>
+              <p className="dempet liten">
+                Lås ukesplanen, så sjekker agenten priser, tilbud og rester for akkurat disse rettene og lager handlelisten. Den foreslår ikke noe nytt.
+              </p>
+              <form action={lasUka}>
+                <input type="hidden" name="uke" value={uke} />
+                <button type="submit" className="sekundar">
+                  Lås ukesplanen
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      )}
+
+      {!venter && igjen && !meny?.valg.laast && (
         <Link href={`/middag/planlegg?uke=${uke}`} className={meny ? "sekundar mlag" : "primar"}>
           {meny ? "Lag ny meny" : "Lag meny"}
         </Link>

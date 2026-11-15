@@ -44,6 +44,8 @@ export type Valg = {
   /** Rester agenten trodde vi hadde, men som vi likevel må kjøpe. */
   trenger?: string[];
   fordeling?: string[];
+  /** Ukesplanen er låst: rettene er bestemt, og agenten har laget innkjøpene for akkurat dem. */
+  laast?: boolean;
 };
 
 export type Meny = { id: string; uke_start: string; data: MenyData; valg: Valg; laget_at: string };

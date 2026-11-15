@@ -159,7 +159,16 @@ export async function hentTilbudFraDb(supabase: Klient, husstand: string): Promi
   }
 }
 
-export type Bestilling = { id: string; uke_start: string; status: "venter" | "jobber" | "ferdig" | "feil"; melding: string | null; bestilt_av: string | null; created_at: string };
+export type Bestilling = {
+  id: string;
+  uke_start: string;
+  status: "venter" | "jobber" | "ferdig" | "feil";
+  melding: string | null;
+  bestilt_av: string | null;
+  created_at: string;
+  /** Låst ukesplan: rettene er valgt, agenten lager bare innkjøp og priser. */
+  laas: boolean;
+};
 
 export async function hentMeny(supabase: Klient, husstand: string, uke: string): Promise<Meny | null> {
   const { data, error } = await supabase
@@ -177,7 +186,7 @@ export async function hentSisteBestilling(supabase: Klient, husstand: string, uk
   const { data } = await supabase
     .schema("middag")
     .from("bestillinger")
-    .select("id, uke_start, status, melding, bestilt_av, created_at")
+    .select("id, uke_start, status, melding, bestilt_av, created_at, laas")
     .eq("household_id", husstand)
     .eq("uke_start", uke)
     .order("created_at", { ascending: false })

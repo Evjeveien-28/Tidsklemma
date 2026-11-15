@@ -9,7 +9,7 @@ import { BUTIKKER } from "./butikker";
 import { hentPersoner } from "../husstand/personer";
 import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesBasisvarer, lesMerkelapper } from "./data";
 import { ukensInnkjop } from "./egne";
-import type { Valg } from "./meny";
+import { valgteRetter, type Valg } from "./meny";
 import { prisHos, prisoversikt } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
@@ -243,15 +243,7 @@ export async function bestill(fd: FormData) {
   const denne = mandagI(iDag());
   if (uke !== denne && uke !== leggTilDager(denne, 7)) redirect("/middag");
   const { supabase, db, hid } = await husstanden();
-  // Hver bestilling starter agenten, som bruker av kvoten. Vent på den som er i gang, og ikke mer enn ti i døgnet.
-  const { data: nylige } = await db
-    .from("bestillinger")
-    .select("uke_start, status, created_at")
-    .eq("household_id", hid)
-    .gte("created_at", new Date(Date.now() - 86_400_000).toISOString());
-  const pagaende = (nylige ?? []).some((b) => b.uke_start === uke && (b.status === "venter" || b.status === "jobber") && Date.parse(b.created_at) > Date.now() - 15 * 60_000);
-  if (pagaende) redirect(`/middag?uke=${uke}`);
-  if ((nylige ?? []).length >= 10) redirect(`/middag/planlegg?uke=${uke}&feil=mange`);
+  await sjekkBestilling(db, hid, uke, `/middag/planlegg?uke=${uke}&feil=mange`);
   const alle = (await hentPersoner(supabase, hid)).map((p) => p.id);
   const dager = fd
     .getAll("dato")
@@ -274,6 +266,58 @@ export async function bestill(fd: FormData) {
   if (!error) after(startAgent);
   revalidatePath("/middag", "layout");
   redirect(error ? `/middag/planlegg?uke=${uke}&feil=lagre` : `/middag?uke=${uke}`);
+}
+
+/**
+ * Hver bestilling starter agenten, som bruker av kvoten. Vent på den som er i gang for samme uke,
+ * og ikke mer enn ti i døgnet.
+ */
+async function sjekkBestilling(db: ReturnType<Klient["schema"]>, hid: string, uke: string, forMange: string) {
+  const { data: nylige } = await db
+    .from("bestillinger")
+    .select("uke_start, status, created_at")
+    .eq("household_id", hid)
+    .gte("created_at", new Date(Date.now() - 86_400_000).toISOString());
+  const pagaende = (nylige ?? []).some(
+    (b) => b.uke_start === uke && (b.status === "venter" || b.status === "jobber") && Date.parse(b.created_at) > Date.now() - 15 * 60_000,
+  );
+  if (pagaende) redirect(`/middag?uke=${uke}`);
+  if ((nylige ?? []).length >= 10) redirect(forMange);
+}
+
+/**
+ * Lås ukesplanen: rettene som er valgt nå, blir planen. Agenten foreslår ikke noe nytt, men lager innkjøp,
+ * priser og tilbud for akkurat disse rettene. Dager uten middag tas ikke med.
+ */
+export async function lasUka(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  if (!erDato(uke)) redirect("/middag");
+  const { supabase, db, hid } = await husstanden();
+  const meny = await hentMeny(supabase, hid, uke);
+  if (!meny) redirect(`/middag?uke=${uke}`);
+  await sjekkBestilling(db, hid, uke, `/middag?uke=${uke}&feil=mange`);
+  const dager = valgteRetter(meny)
+    .filter((r) => r.type !== "fri" && r.dag.dato >= iDag())
+    .map((r) => ({
+      dato: r.dag.dato,
+      oppskrift_id: r.type === "egen" ? r.oppskrift_id : r.type === "alternativ" ? r.alt.oppskrift_id : null,
+      personer: r.dag.personer,
+      borte: [],
+      gjester: 0,
+    }));
+  if (dager.length === 0) redirect(`/middag?uke=${uke}`);
+  const { error } = await db.from("bestillinger").insert({ household_id: hid, uke_start: uke, dager, laas: true });
+  if (!error) after(startAgent);
+  revalidatePath("/middag", "layout");
+  redirect(`/middag?uke=${uke}${error ? "&feil=laas" : ""}`);
+}
+
+/** Lås opp: rettene kan byttes igjen. */
+export async function lasOpp(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  if (!erDato(uke)) redirect("/middag");
+  await endreValg(uke, (v) => ({ ...v, laast: false }));
+  redirect(`/middag?uke=${uke}`);
 }
 
 async function endreValg(uke: string, endre: (v: Valg) => Valg) {
