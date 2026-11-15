@@ -1,4 +1,4 @@
-import { iDag, leggTilDager } from "../dato";
+import { iDag, leggTilDager, naa } from "../dato";
 
 const somDato = (d: string) => new Date(`${d}T12:00:00Z`);
 
@@ -16,12 +16,20 @@ export function standardUke(idag = iDag()): string {
   return ukedag(idag) <= 4 ? mandagI(idag) : leggTilDager(mandagI(idag), 7);
 }
 
-/** Datoene i uka med middag, fra og med i dag hvis uka er i gang. */
-export function middagsdager(mandag: string, dager: number[], idag = iDag()): string[] {
+/** Etter dette er det for sent å planlegge dagens middag. */
+const SISTE_PLANLEGGING_I_DAG = "16:00";
+
+/** Datoene i uka med middag som fortsatt kan planlegges: fra i morgen, og i dag frem til ettermiddagen. */
+export function middagsdager(mandag: string, dager: number[], idag = iDag(), klokka = naa()): string[] {
   return [1, 2, 3, 4, 5, 6, 7]
     .filter((d) => dager.includes(d))
     .map((d) => leggTilDager(mandag, d - 1))
-    .filter((dato) => dato >= idag);
+    .filter((dato) => dato > idag || (dato === idag && klokka < SISTE_PLANLEGGING_I_DAG));
+}
+
+/** «Uke 47». */
+export function ukeNr(mandag: string): string {
+  return ukeTekst(mandag).split(",")[0]!;
 }
 
 const dagFormat = new Intl.DateTimeFormat("nb-NO", { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" });
