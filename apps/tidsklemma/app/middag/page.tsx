@@ -58,7 +58,7 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
   const feilet = bestilling?.status === "feil" && (!meny || bestilling.created_at > meny.laget_at);
   const retter = meny ? valgteRetter(meny) : [];
   const navnPa = new Map(oppskrifter.map((o) => [o.id, o.navn]));
-  const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling) : null;
+  const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, meny.valg.fordeling) : null;
 
   const menyInnhold = meny && (
     <>

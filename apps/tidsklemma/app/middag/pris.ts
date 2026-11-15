@@ -56,10 +56,9 @@ function bedreRangert(a: number[], b: number[]): boolean {
  * Prisoversikten: «billigst» er den billigste måten å handle på, i én butikk eller fordelt på inntil `maks`,
  * og så én sum per butikk i rangert rekkefølge, hver med hvor mye dyrere den er.
  *
- * Standardvalget følger rangeringen: den høyest rangerte butikken, med mindre «billigst» sparer minst
- * `minBesparelse` kroner. Har husstanden valgt selv (`valgt`), brukes det.
+ * Standardvalget er «billigst». Har husstanden valgt selv (`valgt`), brukes det.
  */
-export function prisoversikt(innkjop: Innkjop[], butikker: string[], maks: number, minBesparelse: number, valgt?: string[]) {
+export function prisoversikt(innkjop: Innkjop[], butikker: string[], maks: number, valgt?: string[]) {
   // Varene fordeles på butikkene i rangert rekkefølge, så lik pris havner hos den høyest rangerte.
   const hver = butikker.map((b) => summer(innkjop, [b]));
   const kandidater: Sum[] = [...hver];
@@ -80,8 +79,7 @@ export function prisoversikt(innkjop: Innkjop[], butikker: string[], maks: numbe
 
   const rund = (n: number) => Math.round(n * 100) / 100;
   const alternativer: Butikkvalg[] = [...(fordelt ? [fordelt] : []), ...hver].map((s) => ({ ...s, ekstra: rund(s.sum - (billigst?.sum ?? s.sum)) }));
-  const forste = alternativer.find((a) => a.butikker.length === 1);
-  const standard = forste && billigst && forste.sum - billigst.sum < minBesparelse ? forste : (alternativer[0] ?? null);
+  const standard = alternativer[0] ?? null;
   const nokkel = valgt?.join(",");
   const aktiv = (nokkel && alternativer.find((a) => a.butikker.join(",") === nokkel)) || (valgt?.length ? summer(innkjop, valgt) : standard);
   return { alternativer, billigst, fordelt, standard, aktiv };
