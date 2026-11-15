@@ -10,6 +10,7 @@ import { butikkNavn } from "./butikker";
 import { hentInnstillinger, hentMeny, hentOppskrifter, hentSisteBestilling, hentTilbudFraDb, UKEDAGER } from "./data";
 import { valgteInnkjop, valgteRetter } from "./meny";
 import { prisoversikt } from "./pris";
+import { merkSett } from "./status";
 import { dagTekst, mandagI, standardUke, ukeTekst } from "./uke";
 
 const tilbake = { href: "/", navn: "Tilbake" };
@@ -47,6 +48,8 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
       </Side>
     );
   }
+  // Den røde prikken på Middag-flisen forsvinner når du har sett menyen.
+  if (meny) await merkSett(supabase, meny.id).catch(() => {});
   const favoritter = oppskrifter.filter((o) => o.favoritt).length;
   const naa = new Date().toISOString();
   const gyldige = tilbud.filter((t) => t.gyldig_til >= naa).length;
