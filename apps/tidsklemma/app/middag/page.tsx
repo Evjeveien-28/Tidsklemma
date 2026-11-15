@@ -10,6 +10,7 @@ import { butikkNavn } from "./butikker";
 import { hentInnstillinger, hentMeny, hentOppskrifter, hentSisteBestilling, hentTilbudFraDb, UKEDAGER } from "./data";
 import { valgteInnkjop, valgteRetter } from "./meny";
 import { prisoversikt } from "./pris";
+import { Oppdater } from "./oppdater";
 import { merkSett } from "./status";
 import { dagTekst, mandagI, standardUke, ukeTekst } from "./uke";
 
@@ -59,6 +60,90 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
   const navnPa = new Map(oppskrifter.map((o) => [o.id, o.navn]));
   const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling) : null;
 
+  const menyInnhold = meny && (
+    <>
+      {meny.data.merknad && <p className="dempet">{meny.data.merknad}</p>}
+      <ul className="mdager">
+        {retter.map((r) => {
+          const egen = r.type === "egen";
+          const navn = egen ? (navnPa.get(r.oppskrift_id) ?? "Egen oppskrift") : r.alt.navn;
+          const oppskriftId = egen ? r.oppskrift_id : r.alt.oppskrift_id;
+          return (
+            <li key={r.dag.dato} id={r.dag.dato} className="mdag">
+              <p className="kt">
+                {dagTekst(r.dag.dato)} · {r.dag.personer} pers.
+              </p>
+              <Link href={`/middag/oppskrifter/${oppskriftId}`} className="mrett">
+                {navn}
+              </Link>
+              {!egen && r.alt.begrunnelse && <small className="mgrunn">{r.alt.begrunnelse}</small>}
+              {!egen && r.alt.tilpasninger?.map((t) => (
+                <small key={t} className="mtilpass">
+                  {t}
+                </small>
+              ))}
+              {egen && <small className="dempet">Egen oppskrift, prisen anslås når den sendes til handlelisten</small>}
+              <details className="mbytt">
+                <summary className="inline-knapp">Bytt</summary>
+                <form action={velgRett}>
+                  <input type="hidden" name="uke" value={uke} />
+                  <input type="hidden" name="dato" value={r.dag.dato} />
+                  {r.dag.alternativer.map((a, i) => (
+                    <label key={i} className="radio">
+                      <input type="radio" name="valg" value={`alt:${i}`} defaultChecked={!egen && r.indeks === i} />
+                      <span>
+                        <b>{a.navn}</b>
+                        {a.begrunnelse && <small className="dempet"> – {a.begrunnelse}</small>}
+                      </span>
+                    </label>
+                  ))}
+                  <label className="radio">
+                    <input type="radio" name="valg" value="egen" defaultChecked={egen} />
+                    <span>Egen oppskrift:</span>
+                  </label>
+                  <select
+                    name="egen"
+                    className="felt"
+                    defaultValue={egen ? r.oppskrift_id : ""}
+                    aria-label="Velg egen oppskrift"
+                  >
+                    <option value="">Velg …</option>
+                    {oppskrifter.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.favoritt ? "★ " : ""}
+                        {o.navn}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit" className="sekundar">
+                    Bruk
+                  </button>
+                </form>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+
+      <Link href={`/middag/handleliste?uke=${uke}`} className="kort mhandel">
+        <span>
+          <span className="kt">Handleliste for uka</span>
+          <b>
+            {valgteInnkjop(meny).length} varer
+            {sum?.aktiv && ` · ca. ${kroner.format(sum.aktiv.sum)} kr`}
+          </b>
+          {sum?.aktiv && (
+            <small className="dempet">
+              {sum.aktiv.butikker.length > 1 ? `Fordelt på ${sum.aktiv.butikker.map(butikkNavn).join(" og ")}` : `Alt hos ${butikkNavn(sum.aktiv.butikker[0]!)}`}
+              {sum.billigst && sum.aktiv.sum - sum.billigst.sum >= 1 && ` · ${kroner.format(sum.aktiv.sum - sum.billigst.sum)} kr dyrere enn billigst`}
+            </small>
+          )}
+        </span>
+        <span aria-hidden="true">›</span>
+      </Link>
+    </>
+  );
+
   return (
     <Side tittel="Middag" tilbake={tilbake}>
       <nav className="segment" aria-label="Uke">
@@ -74,10 +159,11 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
       </p>
 
       {venter && (
-        <div className="kort stiplet">
-          <p className="kt">Menyen lages</p>
+        <div className="kort mplanlegges" role="status">
+          <Oppdater />
+          <p className="kt">Under planlegging</p>
           <p>
-            Bestilt {tid.format(new Date(bestilling!.created_at))}.{" "}
+            {meny ? "En ny ukesplan lages og erstatter den gamle." : "Ukesplanen lages."} Bestilt {tid.format(new Date(bestilling!.created_at))}.{" "}
             {agentKlar() ? "Den er klar om noen minutter, og du får et varsel." : "Den lages søndag kveld, når agenten kjører fast."}
           </p>
           {agentKlar() && Date.now() - new Date(bestilling!.created_at).getTime() > 20 * 60_000 && (
@@ -97,89 +183,16 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
         </div>
       )}
 
-      {meny ? (
-        <>
-          {meny.data.merknad && <p className="dempet">{meny.data.merknad}</p>}
-          <ul className="mdager">
-            {retter.map((r) => {
-              const egen = r.type === "egen";
-              const navn = egen ? (navnPa.get(r.oppskrift_id) ?? "Egen oppskrift") : r.alt.navn;
-              const oppskriftId = egen ? r.oppskrift_id : r.alt.oppskrift_id;
-              return (
-                <li key={r.dag.dato} id={r.dag.dato} className="mdag">
-                  <p className="kt">
-                    {dagTekst(r.dag.dato)} · {r.dag.personer} pers.
-                  </p>
-                  <Link href={`/middag/oppskrifter/${oppskriftId}`} className="mrett">
-                    {navn}
-                  </Link>
-                  {!egen && r.alt.begrunnelse && <small className="mgrunn">{r.alt.begrunnelse}</small>}
-                  {!egen && r.alt.tilpasninger?.map((t) => (
-                    <small key={t} className="mtilpass">
-                      {t}
-                    </small>
-                  ))}
-                  {egen && <small className="dempet">Egen oppskrift, prisen anslås når den sendes til handlelisten</small>}
-                  <details className="mbytt">
-                    <summary className="inline-knapp">Bytt</summary>
-                    <form action={velgRett}>
-                      <input type="hidden" name="uke" value={uke} />
-                      <input type="hidden" name="dato" value={r.dag.dato} />
-                      {r.dag.alternativer.map((a, i) => (
-                        <label key={i} className="radio">
-                          <input type="radio" name="valg" value={`alt:${i}`} defaultChecked={!egen && r.indeks === i} />
-                          <span>
-                            <b>{a.navn}</b>
-                            {a.begrunnelse && <small className="dempet"> – {a.begrunnelse}</small>}
-                          </span>
-                        </label>
-                      ))}
-                      <label className="radio">
-                        <input type="radio" name="valg" value="egen" defaultChecked={egen} />
-                        <span>Egen oppskrift:</span>
-                      </label>
-                      <select
-                        name="egen"
-                        className="felt"
-                        defaultValue={egen ? r.oppskrift_id : ""}
-                        aria-label="Velg egen oppskrift"
-                      >
-                        <option value="">Velg …</option>
-                        {oppskrifter.map((o) => (
-                          <option key={o.id} value={o.id}>
-                            {o.favoritt ? "★ " : ""}
-                            {o.navn}
-                          </option>
-                        ))}
-                      </select>
-                      <button type="submit" className="sekundar">
-                        Bruk
-                      </button>
-                    </form>
-                  </details>
-                </li>
-              );
-            })}
-          </ul>
-
-          <Link href={`/middag/handleliste?uke=${uke}`} className="kort mhandel">
-            <span>
-              <span className="kt">Handleliste for uka</span>
-              <b>
-                {valgteInnkjop(meny).length} varer
-                {sum?.aktiv && ` · ca. ${kroner.format(sum.aktiv.sum)} kr`}
-              </b>
-              {sum?.aktiv && (
-                <small className="dempet">
-                  {sum.aktiv.butikker.length > 1 ? `Fordelt på ${sum.aktiv.butikker.map(butikkNavn).join(" og ")}` : `Alt hos ${butikkNavn(sum.aktiv.butikker[0]!)}`}
-                  {sum.billigst && sum.aktiv.sum - sum.billigst.sum >= 1 && ` · ${kroner.format(sum.aktiv.sum - sum.billigst.sum)} kr dyrere enn billigst`}
-                </small>
-              )}
-            </span>
-            <span aria-hidden="true">›</span>
-          </Link>
-        </>
-      ) : (
+      {meny &&
+        (venter ? (
+          <details className="mgammel">
+            <summary>Vis forrige ukesplan</summary>
+            {menyInnhold}
+          </details>
+        ) : (
+          menyInnhold
+        ))}
+      {!meny && (
         !venter && (
           <div className="kort stiplet">
             <p className="kt">Ingen meny ennå</p>
@@ -188,9 +201,11 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
         )
       )}
 
-      <Link href={`/middag/planlegg?uke=${uke}`} className={meny ? "sekundar mlag" : "primar"}>
-        {meny ? "Lag ny meny" : "Lag meny"}
-      </Link>
+      {!venter && (
+        <Link href={`/middag/planlegg?uke=${uke}`} className={meny ? "sekundar mlag" : "primar"}>
+          {meny ? "Lag ny meny" : "Lag meny"}
+        </Link>
+      )}
 
       <nav className="meg-meny" aria-label="Middag" style={{ marginTop: 18 }}>
         <Link href="/middag/oppskrifter" className="meg-lenke">

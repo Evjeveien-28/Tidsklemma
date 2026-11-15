@@ -25,7 +25,7 @@ export async function middagStatus(supabase: Klient, husstand: string): Promise<
     const m = liste.find((x) => x.uke_start === b.uke_start);
     return !m || b.created_at > m.laget_at;
   });
-  if (lages) return { antall: 0, tekst: "Menyen lages …" };
+  if (lages) return { antall: 0, tekst: "Ukesplanen lages …" };
 
   const usett = liste
     .filter((m) => !(sett ?? []).some((s) => s.meny_id === m.id && s.sett_at >= m.laget_at))
