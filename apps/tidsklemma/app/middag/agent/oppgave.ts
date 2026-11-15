@@ -66,7 +66,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 6. **Priser**:
    - Alle priser på et innkjøp gjelder samme mengde som \`navn\`. Trengs to pakker, er prisen for begge.
    - \`priser\` har en nøkkel per butikk-kode der du har en pris. Tilbud: \`{"pris": 39.9, "tilbud": true, "vare": "<navnet i kundeavisen>"}\`.
-   - Ta bare med et tilbud når det er samme slags vare i omtrent samme mengde, er billigere enn \`referanse\`, og fortsatt gjelder (\`gyldig_til\`) den dagen varen brukes. Et tilbud som er dyrere enn vanlig pris, er ikke et tilbud: utelat det.
+   - Ta bare med et tilbud når det er samme slags vare i omtrent samme mengde, er billigere enn \`referanse\`, og gjelder når varen handles. Du får bare tilbud som gjelder en del av menyuka, men se på \`gyldig_fra\` og \`gyldig_til\`: et tilbud som slutter tirsdag, passer bare hvis varen kjøpes tidlig i uka. Et tilbud som er dyrere enn vanlig pris, er ikke et tilbud: utelat det.
    - \`referanse\` er vanlig pris for pakningen fra Oda (kall \`oda\`). Den brukes for butikkene uten egen pris. Velg treffet som passer best, ikke det billigste tilfeldige.
    - Har husstanden ODA_NO blant butikkene, sett \`priser.ODA_NO\` til Oda-prisen (med \`"tilbud": true\` bare hvis Oda har den på salg).
    - Finner du ingen pris, sett \`referanse\` til null.

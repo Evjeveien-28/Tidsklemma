@@ -142,7 +142,7 @@ export default async function UkensTilbud({ searchParams }: { searchParams: Prom
                   </span>
                   <span className="pt">
                     <b>{t.navn.charAt(0) + t.navn.slice(1).toLowerCase()}</b>
-                    <small>{[butikkNavn(t.butikk), mengde(t), `til ${dag.format(new Date(t.gyldig_til))}`].filter(Boolean).join(" · ")}</small>
+                    <small>{[butikkNavn(t.butikk), mengde(t), t.gyldig_fra > na ? `fra ${dag.format(new Date(t.gyldig_fra))}` : `til ${dag.format(new Date(t.gyldig_til))}`].filter(Boolean).join(" · ")}</small>
                     {t.beskrivelse && <small className="tbeskrivelse">{t.beskrivelse}</small>}
                     {treff.get(t.id)!.retter.length > 0 && (
                       <small style={{ color: "#4c5a24" }}>Passer til {treff.get(t.id)!.retter.slice(0, 3).join(", ")}{treff.get(t.id)!.retter.length > 3 ? ` og ${treff.get(t.id)!.retter.length - 3} til` : ""}</small>
