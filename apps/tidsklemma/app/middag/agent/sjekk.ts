@@ -75,7 +75,7 @@ export function sjekkMeny(inn: unknown): { meny: MenyData; feil: [] } | { meny: 
           if (oppskrift_id && navn)
             alternativer.push({ oppskrift_id, navn, ...(begrunnelse && { begrunnelse }), ...(tilpasninger.length && { tilpasninger }), minutter, bruker: [...new Set(bruker)] });
         });
-      if (dato && personer != null) dager.push({ dato, personer: Math.round(personer), alternativer });
+      if (dato && personer != null) dager.push({ dato, personer: Math.round(personer), alternativer, ...(d?.fri === true && { fri: true }) });
     });
 
   const merknad = tekst(m.merknad, "merknad", 500, true);

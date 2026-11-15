@@ -49,6 +49,7 @@ export default async function Planlegg({ searchParams }: { searchParams: Promise
               <input type="hidden" name="dato" value={dato} />
               <select name={`oppskrift_${dato}`} defaultValue="" className="felt" aria-label={`Rett ${dagTekst(dato)}`}>
                 <option value="">Foreslå fra tilbudene</option>
+                <option value="fri">Ingen middag (rester, ute e.l.)</option>
                 {oppskrifter.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.favoritt ? "★ " : ""}

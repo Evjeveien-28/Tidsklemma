@@ -246,6 +246,7 @@ export async function bestill(fd: FormData) {
       const oppskrift = String(fd.get(`oppskrift_${dato}`) ?? "");
       return {
         dato,
+        ...(oppskrift === "fri" && { fri: true }),
         oppskrift_id: /^[0-9a-f-]{36}$/.test(oppskrift) ? oppskrift : null,
         borte: alle.filter((p) => !med.includes(p)),
         gjester: Math.min(Math.max(Math.round(Number(fd.get(`gjester_${dato}`)) || 0), 0), 30),
@@ -277,7 +278,7 @@ export async function velgRett(fd: FormData) {
   if (valg === "egen" && !/^[0-9a-f-]{36}$/.test(egen)) redirect(`/middag?uke=${uke}#${dato}`);
   await endreValg(uke, (v) => ({
     ...v,
-    dager: { ...v.dager, [dato]: valg.startsWith("alt:") ? { alt: Number(valg.slice(4)) } : { oppskrift_id: egen } },
+    dager: { ...v.dager, [dato]: valg === "fri" ? { fri: true } : valg.startsWith("alt:") ? { alt: Number(valg.slice(4)) } : { oppskrift_id: egen } },
   }));
   redirect(`/middag?uke=${uke}#${dato}`);
 }
@@ -347,8 +348,13 @@ export async function sendTilHandleliste(fd: FormData) {
   }
 
   const hl = supabase.schema("handleliste");
+  // Sendes listen på nytt (f.eks. etter å ha byttet en rett), byttes middagsvarene som ikke er kjøpt ennå.
+  // Det som allerede er krysset av som kjøpt, legges ikke til en gang til.
+  const { data: kjopt } = await hl.from("varer").select("navn").eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).not("avkrysset_at", "is", null);
+  const kjopteNavn = new Set((kjopt ?? []).map((v) => String(v.navn).toLowerCase()));
   await hl.from("varer").delete().eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).is("avkrysset_at", null);
-  const { error } = await hl.from("varer").insert(rader);
+  const nye = rader.filter((r) => !kjopteNavn.has(String(r.navn).toLowerCase()));
+  const { error } = nye.length ? await hl.from("varer").insert(nye) : { error: null };
   revalidatePath("/", "layout");
   redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
 }

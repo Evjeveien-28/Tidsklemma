@@ -43,6 +43,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 ## Slik lager du menyen
 1. **Hvem spiser**: for hver dag er \`personer\` = husstanden minus \`borte\`, pluss \`gjester\`. Bruk det til mengdene.
 2. **Valgt rett**: har dagen \`oppskrift_id\`, er det eneste alternativ den dagen. Ellers lag tre alternativer, det beste først.
+   **Fri dag**: har dagen \`"fri": true\`, vil husstanden ikke lage middag (de spiser rester, er ute e.l.). Ta med dagen med \`"fri": true\` og to enkle alternativer i tilfelle de ombestemmer seg, men planlegg uka som om det ikke lages middag den dagen.
 3. **Allergier**:
    - \`handtering\` = \`unnga\`: ikke foreslå retter med ingrediensen.
    - \`bytt\`: retten kan brukes, men bytt ingrediensen for alle. Skriv det i \`tilpasninger\`, f.eks. «Bruk glutenfri pasta».
@@ -56,7 +57,8 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
    - ingredienser som går igjen i flere retter, så pakningene brukes opp (f.eks. 1 kg kyllingfilet til to middager),
    - variasjon: ikke samme rett to ganger i uka som førstevalg, og helst ikke det husstanden valgte de siste to ukene,
    - tid: mandag–fredag helst innen \`hverdag_minutter\`,
-   - \`onsker\`.
+   - \`onsker\` gjelder foran rekkefølgen over når de sier noe konkret. De kan vise til merkelappene på oppskriftene, f.eks. «batch cooking på søndager»: da skal oppskrifter med den merkelappen være førstevalg de dagene.
+   - Skal en rett gi rester til en senere dag (en fri dag, eller fordi ønskene sier det), skaler den opp og skriv det i \`tilpasninger\`, f.eks. «Lag dobbel porsjon: rester til tirsdag».
    Er kokeboka liten, er det greit at retter går igjen i alternativene, men ikke som førstevalg to dager på rad.
 5. **Innkjøp**: lag én felles liste for hele uka, for ALLE alternativene (husstanden kan bytte).
    - Én rad per vare som må kjøpes, i en vanlig pakningsstørrelse, f.eks. «Kyllingfilet 1 kg». Slå sammen når flere retter bruker samme vare, og skriv i \`bruk\` hvordan den fordeles, f.eks. «600 g mandag, 400 g torsdag».

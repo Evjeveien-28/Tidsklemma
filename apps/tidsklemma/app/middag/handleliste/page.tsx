@@ -153,7 +153,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
         <input type="hidden" name="uke" value={uke} />
         <SendKnapp />
         <p className="dempet liten" style={{ textAlign: "center", margin: 0 }}>
-          Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Sender du på nytt, byttes middagsvarene som ikke er krysset av.
+          Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Sender du på nytt etter å ha byttet en rett, byttes middagsvarene som ikke er krysset av. Det du har kjøpt, blir stående.
         </p>
       </form>
     </Side>

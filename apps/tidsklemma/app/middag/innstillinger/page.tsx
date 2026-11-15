@@ -99,9 +99,9 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
         </p>
 
         <label htmlFor="onsker" className="kt">
-          Ønsker <span className="valgfritt">(valgfritt)</span>
+          Ønsker og instruksjoner <span className="valgfritt">(valgfritt)</span>
         </label>
-        <textarea id="onsker" name="onsker" rows={3} maxLength={1000} defaultValue={inn.onsker} placeholder="F.eks. fisk minst én gang i uka, gjerne vegetar på mandager" className="felt" />
+        <textarea id="onsker" name="onsker" rows={3} maxLength={1000} defaultValue={inn.onsker} placeholder="F.eks. fisk minst én gang i uka, vegetar på mandager, retter med merkelappen batch cooking på søndager så vi får rester" className="felt" />
 
         <label htmlFor="basisvarer" className="kt">
           Har alltid hjemme
