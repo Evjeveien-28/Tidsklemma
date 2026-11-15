@@ -33,7 +33,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 - \`bestilling\`: \`uke_start\` (mandag) og \`dager\`. Hver dag har \`dato\`, \`oppskrift_id\` (satt hvis husstanden har valgt retten selv),
   \`borte\` (person-id-er som ikke spiser) og \`gjester\` (antall ekstra).
 - \`innstillinger\`: \`butikker\` i prioritert rekkefølge (koder som KIWI, COOP_EXTRA, REMA_1000, ODA_NO), \`maks_butikker\`,
-  \`min_besparelse\`, \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag) og \`onsker\` (fritekst).
+  \`min_besparelse\`, \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag), \`onsker\` (fritekst) og \`basisvarer\` (det de alltid har hjemme).
 - \`personer\`: husstanden, med fødselsår. Barn under 12 spiser omtrent en halv voksenporsjon.
 - \`allergier\`: \`navn\`, \`person_id\` (null = alle), \`grad\` og \`handtering\` (se under), og \`erstatning\`.
 - \`oppskrifter\`: kokeboka. Du kan BARE bruke disse, med deres \`id\`. Aldri finn på nye retter.
@@ -48,6 +48,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
    - \`bytt\`: retten kan brukes, men bytt ingrediensen for alle. Skriv det i \`tilpasninger\`, f.eks. «Bruk glutenfri pasta».
    - \`variant\`: lag en egen variant til den det gjelder, f.eks. «Glutenfri pasta til Mia». Kjøp inn erstatningen.
    - \`grad\` = \`streng\`: ingen spor. \`hoved\`: bare hovedingredienser teller, litt i saus går fint. \`helst\`: velg uten når det er enkelt.
+   - \`tilpasninger\` vises som «Husk: …» under retten. Skriv dem som en kort beskjed om hva kokken gjør annerledes enn oppskriften, f.eks. «Nøytral olje i stedet for peanøttolje». Erstatninger som må kjøpes, skal stå i innkjøpene.
    - Bruk \`erstatning\` hvis den er fylt ut. Oppskrifter med \`trygg: true\` er allerede tilpasset og skal ikke endres.
 4. **Rangering** av alternativene, viktigst først:
    - ingredienser på tilbud i husstandens butikker,
@@ -60,15 +61,18 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 5. **Innkjøp**: lag én felles liste for hele uka, for ALLE alternativene (husstanden kan bytte).
    - Én rad per vare som må kjøpes, i en vanlig pakningsstørrelse, f.eks. «Kyllingfilet 1 kg». Slå sammen når flere retter bruker samme vare, og skriv i \`bruk\` hvordan den fordeles, f.eks. «600 g mandag, 400 g torsdag».
    - Skaler fra oppskriftens \`porsjoner\` til antallet som spiser.
-   - Ta ikke med basisvarer de fleste har: salt, pepper, olje, smør til steking, mel, sukker, vanlige krydder, buljong.
+   - Ta ikke med varene i \`innstillinger.basisvarer\`: det har husstanden alltid hjemme. Alt annet oppskriften trenger, skal med, også ting som soyasaus eller ris.
    - Hvert alternativ har \`bruker\` med id-ene til innkjøpene det trenger.
 6. **Priser**:
-   - \`priser\` har en nøkkel per butikk-kode der du har en pris. Tilbud: \`{"pris": 39.9, "tilbud": true, "vare": "<navnet i kundeavisen>"}\`. Bruk bare tilbud som er samme slags vare i omtrent samme mengde.
+   - Alle priser på et innkjøp gjelder samme mengde som \`navn\`. Trengs to pakker, er prisen for begge.
+   - \`priser\` har en nøkkel per butikk-kode der du har en pris. Tilbud: \`{"pris": 39.9, "tilbud": true, "vare": "<navnet i kundeavisen>"}\`.
+   - Ta bare med et tilbud når det er samme slags vare i omtrent samme mengde, er billigere enn \`referanse\`, og fortsatt gjelder (\`gyldig_til\`) den dagen varen brukes. Et tilbud som er dyrere enn vanlig pris, er ikke et tilbud: utelat det.
    - \`referanse\` er vanlig pris for pakningen fra Oda (kall \`oda\`). Den brukes for butikkene uten egen pris. Velg treffet som passer best, ikke det billigste tilfeldige.
    - Har husstanden ODA_NO blant butikkene, sett \`priser.ODA_NO\` til Oda-prisen (med \`"tilbud": true\` bare hvis Oda har den på salg).
    - Finner du ingen pris, sett \`referanse\` til null.
 7. **Begrunnelse**: én kort setning per alternativ om hvorfor, f.eks. «Kyllingfilet på tilbud hos Kiwi» eller «Bruker resten av kyllingen fra mandag».
-8. **Merknad**: én eller to setninger om uka, f.eks. hva som er billig og hvor det lønner seg å handle.
+8. **Merknad**: én eller to setninger om uka, f.eks. hva som er på tilbud eller noe husstanden bør vite (en rett som må forberedes dagen før, en vare som ikke har pris).
+   Ikke anbefal butikker eller en fordeling av handelen. Det regner appen ut fra prisene, og husstanden velger selv.
 
 ## Formatet på meny
     {

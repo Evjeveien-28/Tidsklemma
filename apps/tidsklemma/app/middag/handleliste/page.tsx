@@ -29,11 +29,10 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
 
   const innkjop = valgteInnkjop(meny);
   const hjemme = valgteInnkjop(meny, true).filter((i) => (meny.valg.har ?? []).includes(i.id));
-  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse);
-  const valgt = meny.valg.fordeling?.length ? meny.valg.fordeling : (oversikt.billigst?.butikker ?? inn.butikker.slice(0, 1));
-  const aktiv = summer(innkjop, valgt);
+  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling);
+  const aktiv = oversikt.aktiv ?? summer(innkjop, inn.butikker.slice(0, 1));
+  const valgt = aktiv.butikker;
   const egne = valgteRetter(meny).flatMap((r) => (r.type === "egen" ? [oppskrifter.find((o) => o.id === r.oppskrift_id)?.navn ?? "Egen oppskrift"] : []));
-  const valg = [...oversikt.hver, ...(oversikt.fordelt ? [oversikt.fordelt] : [])];
   const nokkel = (b: string[]) => b.join(",");
 
   return (
@@ -42,20 +41,42 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
         <p className="kt">Hvor handler vi</p>
         <form action={velgFordeling}>
           <input type="hidden" name="uke" value={uke} />
-          {valg.map((s) => {
+          {oversikt.alternativer.map((s) => {
             const fordelt = s.butikker.length > 1;
+            // Hva som kjøpes hvor, når handelen er fordelt: varene i de små butikkene, og resten i den største.
+            const hvor = fordelt
+              ? (() => {
+                  const per = s.butikker
+                    .map((b) => ({ b, varer: innkjop.filter((i) => s.plassering[i.id] === b) }))
+                    .sort((a, b) => b.varer.length - a.varer.length);
+                  const deler = per.slice(1).map((p) =>
+                    p.varer.length <= 4
+                      ? `${p.varer.map((i) => i.navn.split(" ")[0]).join(", ")} hos ${butikkNavn(p.b)}`
+                      : `${p.varer.length} varer hos ${butikkNavn(p.b)}`,
+                  );
+                  return `${deler.join(", ")}, resten hos ${butikkNavn(per[0]!.b)}`;
+                })()
+              : null;
             return (
               <label key={nokkel(s.butikker)} className="radio mvalg">
                 <input type="radio" name="butikker" value={nokkel(s.butikker)} defaultChecked={nokkel(s.butikker) === nokkel(valgt)} />
                 <span>
-                  <b>{fordelt ? `Billigst fordelt: ${s.butikker.map(butikkNavn).join(" + ")}` : `Alt hos ${butikkNavn(s.butikker[0]!)}`}</b>
+                  <b>{fordelt ? s.butikker.map(butikkNavn).join(" + ") : `Alt hos ${butikkNavn(s.butikker[0]!)}`}</b>
                   <small className="dempet">
                     ca. {kroner.format(s.sum)} kr
                     {s.tilbud > 0 && ` · ${s.tilbud} på tilbud`}
-                    {"spar" in s && ` · spar ca. ${kroner.format((s as { spar: number }).spar)} kr`}
                     {s.mangler > 0 && ` · ${s.mangler} uten pris`}
                   </small>
+                  {hvor && <small className="dempet">{hvor}</small>}
                 </span>
+                {s.butikker.join(",") === oversikt.billigst?.butikker.join(",") ? (
+                  <span className="mbillig">Billigst</span>
+                ) : (
+                  <span className="mpluss">
+                    {s.ekstra < 0 ? "−" : "+"}
+                    {kroner.format(Math.abs(s.ekstra))} kr
+                  </span>
+                )}
               </label>
             );
           })}
@@ -64,8 +85,9 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
           </button>
         </form>
         <p className="dempet liten">
-          Tilbudspriser er fra kundeavisene. Andre varer har anslått vanlig pris fra Oda, så summene er omtrentlige.
-          {inn.maks_butikker > 1 && !oversikt.fordelt && ` Å fordele handelen sparer mindre enn ${inn.min_besparelse} kr denne uka.`}
+          Tilbudspriser er fra kundeavisene. Andre varer har anslått vanlig pris fra Oda, så summene er omtrentlige. Forskjeller
+          under ca. 10 kr regnes som like, og da velges butikkene dere har rangert høyest.
+          {inn.maks_butikker > 1 && !oversikt.fordelt && " Det blir ikke billigere av å fordele handelen denne uka."}
         </p>
       </section>
 
