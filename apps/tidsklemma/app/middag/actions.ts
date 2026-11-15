@@ -6,16 +6,18 @@ import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentHusstand } from "../planter/data";
 import { BUTIKKER } from "./butikker";
-import { sokOda } from "../handleliste/oda";
 import { hentPersoner } from "../husstand/personer";
 import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesBasisvarer, lesMerkelapper } from "./data";
-import { valgteInnkjop, valgteRetter, type Valg } from "./meny";
+import { ukensInnkjop } from "./egne";
+import type { Valg } from "./meny";
 import { prisHos, prisoversikt } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
 import { startAgent } from "./agent/start";
 import { iDag, leggTilDager } from "../dato";
 import { mandagI } from "./uke";
+
+type Klient = Awaited<ReturnType<typeof createClient>>;
 
 async function husstanden() {
   const supabase = await createClient();
@@ -275,11 +277,13 @@ export async function bestill(fd: FormData) {
 }
 
 async function endreValg(uke: string, endre: (v: Valg) => Valg) {
-  const { db, hid } = await husstanden();
+  const { supabase, db, hid } = await husstanden();
   const { data } = await db.from("menyer").select("valg").eq("household_id", hid).eq("uke_start", uke).maybeSingle();
   if (!data) return;
   await db.from("menyer").update({ valg: endre((data.valg ?? {}) as Valg) }).eq("household_id", hid).eq("uke_start", uke);
-  revalidatePath("/middag", "layout");
+  // Er uka sendt til Handleliste, følger den med på endringen.
+  if (await erSendt(supabase, hid, uke)) await synkHandleliste(supabase, hid, uke);
+  revalidatePath("/", "layout");
 }
 
 /** Velg et av alternativene, eller en egen oppskrift, for en dag. */
@@ -329,11 +333,34 @@ export async function velgFordeling(fd: FormData) {
 export async function sendTilHandleliste(fd: FormData) {
   const uke = String(fd.get("uke") ?? "");
   if (!erDato(uke)) redirect("/middag");
-  const { supabase, db, hid } = await husstanden();
+  const { supabase, hid } = await husstanden();
+  const { error } = await synkHandleliste(supabase, hid, uke);
+  revalidatePath("/", "layout");
+  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
+}
+
+/** Er middagsvarene for uka sendt til Handleliste? Da holdes de oppdatert når menyen endres. */
+async function erSendt(supabase: Klient, hid: string, uke: string): Promise<boolean> {
+  const { count } = await supabase
+    .schema("handleliste")
+    .from("varer")
+    .select("id", { count: "exact", head: true })
+    .eq("household_id", hid)
+    .eq("kilde", "middag")
+    .eq("kilde_uke", uke);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Legger innkjøpene for de valgte rettene i Handleliste, med butikk. Middagsvarene for uka som ikke er kjøpt ennå,
+ * byttes ut, så listen følger menyen. Det som allerede er krysset av som kjøpt, legges ikke til en gang til.
+ * Egne oppskrifter er med som vanlige varer, med pris anslått fra Oda (se egne.ts).
+ */
+async function synkHandleliste(supabase: Klient, hid: string, uke: string): Promise<{ error: unknown }> {
   const meny = await hentMeny(supabase, hid, uke);
-  if (!meny) redirect("/middag");
+  if (!meny) return { error: "ingen meny" };
   const inn = await hentInnstillinger(supabase, hid);
-  const innkjop = valgteInnkjop(meny);
+  const { innkjop } = await ukensInnkjop(supabase, meny, inn.basisvarer);
   const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
   const fordeling = aktiv?.butikker ?? inn.butikker.slice(0, 1);
   const plassering = aktiv?.plassering ?? {};
@@ -351,27 +378,14 @@ export async function sendTilHandleliste(fd: FormData) {
       kilde_uke: uke,
     };
   });
-  // Egne oppskrifter: ingrediensene som de står, med pris fra Oda.
-  const egne = valgteRetter(meny).filter((r) => r.type === "egen").map((r) => (r.type === "egen" ? r.oppskrift_id : ""));
-  if (egne.length) {
-    const { data: oppskrifter } = await db.from("oppskrifter").select("id, ingredienser").in("id", egne);
-    const linjer = (oppskrifter ?? []).flatMap((o) => o.ingredienser as string[]).slice(0, 60);
-    const funnet = await Promise.all(linjer.map((l) => sokOda(l.replace(/^[\d.,/\s]+(g|kg|dl|l|ss|ts|stk\.?|pk\.?|boks|ml)?\s+/i, ""), 1)));
-    linjer.forEach((l, n) =>
-      rader.push({ household_id: hid, navn: l.slice(0, 120), antall: 1, butikk: fordeling[0] ?? null, produkt: funnet[n]![0] ?? null, kilde: "middag", kilde_uke: uke }),
-    );
-  }
 
   const hl = supabase.schema("handleliste");
-  // Sendes listen på nytt (f.eks. etter å ha byttet en rett), byttes middagsvarene som ikke er kjøpt ennå.
-  // Det som allerede er krysset av som kjøpt, legges ikke til en gang til.
   const { data: kjopt } = await hl.from("varer").select("navn").eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).not("avkrysset_at", "is", null);
   const kjopteNavn = new Set((kjopt ?? []).map((v) => String(v.navn).toLowerCase()));
   await hl.from("varer").delete().eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).is("avkrysset_at", null);
   const nye = rader.filter((r) => !kjopteNavn.has(String(r.navn).toLowerCase()));
   const { error } = nye.length ? await hl.from("varer").insert(nye) : { error: null };
-  revalidatePath("/", "layout");
-  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
+  return { error };
 }
 
 /** Menyen lar vente på seg: start agenten igjen. Bestillingen er den samme. */

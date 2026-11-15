@@ -5,8 +5,8 @@ import { hentHusstand } from "../../planter/data";
 import { Side } from "../../side";
 import { sendTilHandleliste, settHjemme, velgFordeling } from "../actions";
 import { butikkNavn } from "../butikker";
-import { hentInnstillinger, hentMeny, hentOppskrifter } from "../data";
-import { harHjemme, valgteInnkjop, valgteRetter } from "../meny";
+import { hentInnstillinger, hentMeny } from "../data";
+import { ukensInnkjop } from "../egne";
 import { prisHos, prisoversikt, summer } from "../pris";
 import { SendKnapp } from "./send-knapp";
 
@@ -20,19 +20,17 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
   if (!husstand) notFound();
-  const [meny, inn, oppskrifter] = await Promise.all([
+  const [meny, inn, { count: sendt }] = await Promise.all([
     hentMeny(supabase, husstand.id, uke),
     hentInnstillinger(supabase, husstand.id),
-    hentOppskrifter(supabase, husstand.id),
+    supabase.schema("handleliste").from("varer").select("id", { count: "exact", head: true }).eq("household_id", husstand.id).eq("kilde", "middag").eq("kilde_uke", uke),
   ]);
   if (!meny) notFound();
 
-  const innkjop = valgteInnkjop(meny);
-  const hjemme = valgteInnkjop(meny, true).filter((i) => harHjemme(meny, i));
+  const { innkjop, hjemme } = await ukensInnkjop(supabase, meny, inn.basisvarer);
   const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
   const aktiv = oversikt.aktiv ?? summer(innkjop, inn.butikker.slice(0, 1));
   const valgt = aktiv.butikker;
-  const egne = valgteRetter(meny).flatMap((r) => (r.type === "egen" ? [oppskrifter.find((o) => o.id === r.oppskrift_id)?.navn ?? "Egen oppskrift"] : []));
   const nokkel = (b: string[]) => b.join(",");
 
   return (
@@ -119,11 +117,6 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
           );
         })}
       </ul>
-      {egne.length > 0 && (
-        <p className="dempet liten">
-          Ingrediensene til {egne.join(" og ")} (egen oppskrift) legges til når du sender, med pris anslått fra Oda.
-        </p>
-      )}
       {hjemme.length > 0 && (
         // Åpen når agenten har lagt inn rester fra forrige uke, så de blir sett og kan rettes.
         <details className="hl-kurv" open={hjemme.some((i) => i.rest && !(meny.valg.har ?? []).includes(i.id))}>
@@ -151,9 +144,17 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
 
       <form action={sendTilHandleliste} className="bunnknapper">
         <input type="hidden" name="uke" value={uke} />
-        <SendKnapp />
+        <SendKnapp sendt={Boolean(sendt)} />
         <p className="dempet liten" style={{ textAlign: "center", margin: 0 }}>
-          Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Sender du på nytt etter å ha byttet en rett, byttes middagsvarene som ikke er krysset av. Det du har kjøpt, blir stående.
+          {sendt ? (
+            <>
+              Sendt til <Link href="/handleliste">Handleliste</Link>. Bytter du rett eller butikk, oppdateres den der også. Det du har kjøpt, blir stående.
+            </>
+          ) : (
+            <>
+              Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Bytter du rett etterpå, oppdateres listen der også.
+            </>
+          )}
         </p>
       </form>
     </Side>
