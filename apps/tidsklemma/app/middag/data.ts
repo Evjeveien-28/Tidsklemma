@@ -65,7 +65,7 @@ export const HANDTERINGER = [
 ] as const;
 
 export const OPPSKRIFTFELT =
-  "id, household_id, navn, lenke, ingredienser, fremgangsmaate, minutter, porsjoner, merkelapper, bilde_url, favoritt, trygg, trenger_utfylling, created_at";
+  "id, household_id, navn, lenke, ingredienser, fremgangsmaate, minutter, porsjoner, merkelapper, bilde_url, favoritt, trygg, trenger_utfylling, utfylling_forsokt, created_at";
 
 export type Oppskrift = {
   id: string;
@@ -81,6 +81,8 @@ export type Oppskrift = {
   favoritt: boolean;
   trygg: boolean;
   trenger_utfylling: boolean;
+  /** Sist agenten prøvde å lese oppskriften fra siden. */
+  utfylling_forsokt: string | null;
   created_at: string;
 };
 

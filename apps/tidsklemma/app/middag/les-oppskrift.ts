@@ -114,6 +114,30 @@ export function sideTittel(html: string): string | null {
   return t ? rens(t).slice(0, 200) : null;
 }
 
+/**
+ * Den lesbare teksten på en side, til agenten når oppskriften ikke lå som data: uten skript, stiler og menyer,
+ * med linjeskift der det er avsnitt og listepunkter. Høyst `maks` tegn.
+ */
+export function sidetekst(html: string, maks = 30_000): string {
+  const kropp = html.match(/<body[\s\S]*<\/body>/i)?.[0] ?? html;
+  return kropp
+    .replace(/<(script|style|noscript|svg|iframe|template)\b[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(br|\/p|\/li|\/h[1-6]|\/div|\/tr)\b[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .trim()
+    .slice(0, maks);
+}
+
 /** Henter siden en lenke peker til. Bare offentlige nettsider, se trygg-henting.ts. */
 export async function hentSide(url: string): Promise<string | null> {
   return hentTrygt(url);

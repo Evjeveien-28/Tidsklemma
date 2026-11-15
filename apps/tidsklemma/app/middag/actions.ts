@@ -157,6 +157,8 @@ export async function leggTilFraLenke(fd: FormData) {
     .select("id")
     .single();
   if (error || !data) redirect(`/middag/oppskrifter/ny?feil=lagre&lenke=${encodeURIComponent(rå)}`);
+  // Klarte vi ikke å lese den, prøver agenten med teksten på siden.
+  if (!lest || lest.ingredienser.length === 0) after(startAgent);
   revalidatePath("/middag", "layout");
   redirect(`/middag/oppskrifter/${data.id}?${lest ? "lest=1" : "ulest=1"}`);
 }

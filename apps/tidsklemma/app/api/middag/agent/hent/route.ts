@@ -1,4 +1,5 @@
 import { oppgave } from "../../../../middag/agent/oppgave";
+import { hentSide, sidetekst } from "../../../../middag/les-oppskrift";
 import { hentTilbud } from "../../../../middag/tilbud-hent";
 import { agentDb, nektet } from "../nokkel";
 
@@ -20,7 +21,16 @@ export async function POST(request: Request) {
     if (tilbud.length) await db.rpc("lagre_tilbud", { hemmelig: nokkel, hid: h.household_id, nye: tilbud });
   }
 
+  // Oppskrifter appen ikke klarte å lese: agenten får teksten på siden og fyller inn. Agenten når ikke sidene selv.
+  const { data: mangler } = await db.rpc("agent_utfylling", { nokkel });
+  const utfylling = await Promise.all(
+    ((mangler ?? []) as { id: string; navn: string; lenke: string }[]).map(async (o) => {
+      const html = await hentSide(o.lenke);
+      return { ...o, tekst: html ? sidetekst(html) : null };
+    }),
+  );
+
   const { data, error } = await db.rpc("agent_hent", { nokkel });
   if (error) return nektet(error.message);
-  return Response.json({ oppgave: oppgave(new URL(request.url).origin), bestillinger: data });
+  return Response.json({ oppgave: oppgave(new URL(request.url).origin), utfylling, bestillinger: data });
 }

@@ -7,6 +7,7 @@ import { OPPSKRIFTFELT, type Oppskrift } from "../../data";
 import { Bilde } from "../../bilde";
 import { Stjerne } from "../../stjerne";
 import { SlettKnapp } from "./slett-knapp";
+import { agentKlar } from "../../agent/start";
 
 export default async function OppskriftSide({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ lest?: string; ulest?: string }> }) {
   const [{ id }, { lest, ulest }] = await Promise.all([params, searchParams]);
@@ -22,8 +23,17 @@ export default async function OppskriftSide({ params, searchParams }: { params: 
       {lest && <p className="dempet">Hentet fra siden. Sjekk gjerne at alt ble riktig.</p>}
       {(ulest || o.trenger_utfylling) && (
         <div className="kort stiplet">
-          <p className="kt">Mangler ingredienser</p>
-          <p>Fant ikke oppskriften i lesbar form på siden. Skriv inn ingrediensene under «Endre», så kan den komme med i ukesmenyen.</p>
+          {o.lenke && agentKlar() && (!o.utfylling_forsokt || Date.now() - Date.parse(o.utfylling_forsokt) < 10 * 60_000) ? (
+            <>
+              <p className="kt">Fylles inn</p>
+              <p>Fant ikke oppskriften i lesbar form. Agenten leser siden og fyller inn ingrediensene om noen minutter.</p>
+            </>
+          ) : (
+            <>
+              <p className="kt">Mangler ingredienser</p>
+              <p>Fant ikke oppskriften på siden. Skriv inn ingrediensene under «Endre», så kan den komme med i ukesmenyen.</p>
+            </>
+          )}
         </div>
       )}
       <Bilde src={o.bilde_url} className="ostort" />
