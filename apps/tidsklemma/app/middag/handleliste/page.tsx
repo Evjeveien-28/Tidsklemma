@@ -6,7 +6,7 @@ import { Side } from "../../side";
 import { sendTilHandleliste, settHjemme, velgFordeling } from "../actions";
 import { butikkNavn } from "../butikker";
 import { hentInnstillinger, hentMeny, hentOppskrifter } from "../data";
-import { valgteInnkjop, valgteRetter } from "../meny";
+import { harHjemme, valgteInnkjop, valgteRetter } from "../meny";
 import { prisHos, prisoversikt, summer } from "../pris";
 import { SendKnapp } from "./send-knapp";
 
@@ -28,7 +28,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   if (!meny) notFound();
 
   const innkjop = valgteInnkjop(meny);
-  const hjemme = valgteInnkjop(meny, true).filter((i) => (meny.valg.har ?? []).includes(i.id));
+  const hjemme = valgteInnkjop(meny, true).filter((i) => harHjemme(meny, i));
   const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
   const aktiv = oversikt.aktiv ?? summer(innkjop, inn.butikker.slice(0, 1));
   const valgt = aktiv.butikker;
@@ -125,13 +125,15 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
         </p>
       )}
       {hjemme.length > 0 && (
-        <details className="hl-kurv">
+        // Åpen når agenten har lagt inn rester fra forrige uke, så de blir sett og kan rettes.
+        <details className="hl-kurv" open={hjemme.some((i) => i.rest && !(meny.valg.har ?? []).includes(i.id))}>
           <summary className="kt">Har hjemme ({hjemme.length})</summary>
           <ul className="hl-liste">
             {hjemme.map((i) => (
               <li key={i.id} className="hl-rad pa">
                 <span className="hl-tekst">
                   <b>{i.navn}</b>
+                  {i.rest && !(meny.valg.har ?? []).includes(i.id) && <small>{i.rest}</small>}
                 </span>
                 <form action={settHjemme}>
                   <input type="hidden" name="uke" value={uke} />

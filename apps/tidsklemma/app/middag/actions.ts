@@ -288,7 +288,12 @@ export async function settHjemme(fd: FormData) {
   const id = String(fd.get("innkjop") ?? "");
   const pa = fd.get("pa") === "1";
   if (!erDato(uke)) redirect("/middag");
-  await endreValg(uke, (v) => ({ ...v, har: pa ? [...new Set([...(v.har ?? []), id])] : (v.har ?? []).filter((x) => x !== id) }));
+  // «Trenger likevel» på en rest fra forrige uke må huskes, ellers havner den under «Har hjemme» igjen.
+  await endreValg(uke, (v) => ({
+    ...v,
+    har: pa ? [...new Set([...(v.har ?? []), id])] : (v.har ?? []).filter((x) => x !== id),
+    trenger: pa ? (v.trenger ?? []).filter((x) => x !== id) : [...new Set([...(v.trenger ?? []), id])],
+  }));
   redirect(`/middag/handleliste?uke=${uke}`);
 }
 

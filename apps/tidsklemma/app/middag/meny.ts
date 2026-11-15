@@ -16,6 +16,8 @@ export type Innkjop = {
   priser: Record<string, Pris>;
   /** Vanlig pris (fra Oda), brukt der butikken ikke har egen pris. */
   referanse: number | null;
+  /** Har vi trolig igjen fra forrige uke, f.eks. «Ca. 750 g igjen fra forrige uke». Står da under «Har hjemme». */
+  rest?: string;
 };
 
 export type Alternativ = {
@@ -38,6 +40,8 @@ export type MenyData = { dager: Dag[]; innkjop: Innkjop[]; merknad?: string };
 export type Valg = {
   dager?: Record<string, { alt?: number; oppskrift_id?: string }>;
   har?: string[];
+  /** Rester agenten trodde vi hadde, men som vi likevel må kjøpe. */
+  trenger?: string[];
   fordeling?: string[];
 };
 
@@ -59,9 +63,13 @@ export function valgteRetter(meny: Pick<Meny, "data" | "valg">): ValgtRett[] {
   });
 }
 
+/** Har vi varen hjemme: krysset av selv, eller en rest fra forrige uke vi ikke har sagt at vi trenger. */
+export function harHjemme(meny: Pick<Meny, "valg">, i: Innkjop): boolean {
+  return (meny.valg.har ?? []).includes(i.id) || (Boolean(i.rest) && !(meny.valg.trenger ?? []).includes(i.id));
+}
+
 /** Innkjøpene de valgte rettene trenger, uten det vi har hjemme. */
 export function valgteInnkjop(meny: Pick<Meny, "data" | "valg">, medHjemme = false): Innkjop[] {
   const ider = new Set(valgteRetter(meny).flatMap((r) => (r.type === "alternativ" ? r.alt.bruker : [])));
-  const har = new Set(meny.valg.har ?? []);
-  return meny.data.innkjop.filter((i) => ider.has(i.id) && (medHjemme || !har.has(i.id)));
+  return meny.data.innkjop.filter((i) => ider.has(i.id) && (medHjemme || !harHjemme(meny, i)));
 }

@@ -63,15 +63,21 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
    - Skaler fra oppskriftens \`porsjoner\` til antallet som spiser.
    - Ta ikke med varene i \`innstillinger.basisvarer\`: det har husstanden alltid hjemme. Alt annet oppskriften trenger, skal med, også ting som soyasaus eller ris.
    - Hvert alternativ har \`bruker\` med id-ene til innkjøpene det trenger.
-6. **Priser**:
+6. **Rester fra forrige uke**: se på menyen for uka rett før i \`tidligere\` (\`uke_start\` sju dager før denne).
+   - Finn rettene husstanden valgte (se \`valg\` over) og innkjøpene de brukte. Sammenlign pakningen som ble kjøpt (\`navn\`) med det rettene brukte (\`bruk\`, og mengdene i oppskriftene). Det som er til overs, har de trolig igjen. Varer i \`valg.har\` ble ikke kjøpt den uka.
+   - Regn bare med det som holder seg: tørrvarer (ris, pasta, mel, linser), hermetikk, sauser, krydder og oljer kan stå lenge. Meieri (fløte, rømme, ost) og faste grønnsaker (rødkål, gulrot, sellerirot, løk, poteter) regnes som rest bare tidlig i uka. Ferske urter, salat, kjøtt og fisk regnes aldri som rest.
+   - Foretrekk retter som bruker opp restene, og si det i \`begrunnelse\`, f.eks. «Bruker resten av risen fra forrige uke».
+   - En rest som trengs denne uka, skal likevel stå i \`innkjop\`, med pris som vanlig og \`"rest": "Ca. 750 g igjen fra forrige uke"\`. Appen legger den under «Har hjemme», og husstanden kan flytte den tilbake hvis de ikke har den. Trengs mer enn resten, lag heller et vanlig innkjøp uten \`rest\`, og skriv i \`bruk\` at resten fra forrige uke kommer i tillegg.
+   - Er du usikker, ikke regn det som rest. Det er bedre å kjøpe en ting for mye enn å mangle noe.
+7. **Priser**:
    - Alle priser på et innkjøp gjelder samme mengde som \`navn\`. Trengs to pakker, er prisen for begge.
    - \`priser\` har en nøkkel per butikk-kode der du har en pris. Tilbud: \`{"pris": 39.9, "tilbud": true, "vare": "<navnet i kundeavisen>"}\`.
    - Ta bare med et tilbud når det er samme slags vare i omtrent samme mengde, er billigere enn \`referanse\`, og gjelder når varen handles. Du får bare tilbud som gjelder en del av menyuka, men se på \`gyldig_fra\` og \`gyldig_til\`: et tilbud som slutter tirsdag, passer bare hvis varen kjøpes tidlig i uka. Et tilbud som er dyrere enn vanlig pris, er ikke et tilbud: utelat det.
    - \`referanse\` er vanlig pris for pakningen fra Oda (kall \`oda\`). Den brukes for butikkene uten egen pris. Velg treffet som passer best, ikke det billigste tilfeldige.
    - Har husstanden ODA_NO blant butikkene, sett \`priser.ODA_NO\` til Oda-prisen (med \`"tilbud": true\` bare hvis Oda har den på salg).
    - Finner du ingen pris, sett \`referanse\` til null.
-7. **Begrunnelse**: én kort setning per alternativ om hvorfor, f.eks. «Kyllingfilet på tilbud hos Kiwi» eller «Bruker resten av kyllingen fra mandag».
-8. **Merknad**: én eller to setninger om uka, f.eks. hva som er på tilbud eller noe husstanden bør vite (en rett som må forberedes dagen før, en vare som ikke har pris).
+8. **Begrunnelse**: én kort setning per alternativ om hvorfor, f.eks. «Kyllingfilet på tilbud hos Kiwi» eller «Bruker resten av kyllingen fra mandag».
+9. **Merknad**: én eller to setninger om uka, f.eks. hva som er på tilbud eller noe husstanden bør vite (en rett som må forberedes dagen før, en vare som ikke har pris).
    Ikke anbefal butikker eller en fordeling av handelen. Det regner appen ut fra prisene, og husstanden velger selv.
 
 ## Formatet på meny
@@ -79,7 +85,9 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
       "merknad": "…",
       "innkjop": [
         {"id": "kylling", "navn": "Kyllingfilet 1 kg", "bruk": "600 g mandag, 400 g torsdag",
-         "priser": {"KIWI": {"pris": 129, "tilbud": true, "vare": "Kyllingfilet 1 kg"}}, "referanse": 179}
+         "priser": {"KIWI": {"pris": 129, "tilbud": true, "vare": "Kyllingfilet 1 kg"}}, "referanse": 179},
+        {"id": "ris", "navn": "Jasminris 1 kg", "bruk": "300 g torsdag", "priser": {}, "referanse": 49.9,
+         "rest": "Ca. 750 g igjen fra forrige uke"}
       ],
       "dager": [
         {"dato": "2026-11-16", "personer": 4, "alternativer": [
