@@ -70,3 +70,12 @@
 .mpluss, .mbillig { white-space: nowrap; font-size: 15px; font-weight: 600; margin-top: 2px; }
 .mpluss { color: var(--dempet); }
 .mbillig { color: #4c5a24; }
+.mplanlegges { border-style: dashed; }
+.mplanlegges .kt::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--avokado); vertical-align: middle; animation: mpuls 1.4s ease-in-out infinite; }
+@keyframes mpuls { 50% { opacity: 0.2; } }
+@media (prefers-reduced-motion: reduce) { .mplanlegges .kt::after { animation: none; } }
+.mgammel { margin-top: 8px; }
+.mgammel > summary { cursor: pointer; color: var(--dempet); min-height: 40px; }
+.mgammel[open] > summary { margin-bottom: 4px; }
+.mgammel .mdager { opacity: 0.75; }
+.mgammel .mbytt, .mgammel .mhandel { display: none; }
