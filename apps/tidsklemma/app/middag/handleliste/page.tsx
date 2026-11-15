@@ -29,7 +29,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
 
   const innkjop = valgteInnkjop(meny);
   const hjemme = valgteInnkjop(meny, true).filter((i) => (meny.valg.har ?? []).includes(i.id));
-  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling);
+  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
   const aktiv = oversikt.aktiv ?? summer(innkjop, inn.butikker.slice(0, 1));
   const valgt = aktiv.butikker;
   const egne = valgteRetter(meny).flatMap((r) => (r.type === "egen" ? [oppskrifter.find((o) => o.id === r.oppskrift_id)?.navn ?? "Egen oppskrift"] : []));

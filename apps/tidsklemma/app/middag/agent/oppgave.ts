@@ -33,7 +33,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 - \`bestilling\`: \`uke_start\` (mandag) og \`dager\`. Hver dag har \`dato\`, \`oppskrift_id\` (satt hvis husstanden har valgt retten selv),
   \`borte\` (person-id-er som ikke spiser) og \`gjester\` (antall ekstra).
 - \`innstillinger\`: \`butikker\` i prioritert rekkefølge (koder som KIWI, COOP_EXTRA, REMA_1000, ODA_NO), \`maks_butikker\`,
-  \`min_besparelse\`, \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag), \`onsker\` (fritekst) og \`basisvarer\` (det de alltid har hjemme).
+  \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag), \`onsker\` (fritekst) og \`basisvarer\` (det de alltid har hjemme).
 - \`personer\`: husstanden, med fødselsår. Barn under 12 spiser omtrent en halv voksenporsjon.
 - \`allergier\`: \`navn\`, \`person_id\` (null = alle), \`grad\` og \`handtering\` (se under), og \`erstatning\`.
 - \`oppskrifter\`: kokeboka. Du kan BARE bruke disse, med deres \`id\`. Aldri finn på nye retter.

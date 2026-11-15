@@ -49,7 +49,6 @@ export async function lagreInnstillinger(fd: FormData) {
       household_id: hid,
       dager: dager.length ? dager : [1, 2, 3, 4, 5, 6, 7],
       maks_butikker: tall(fd, "maks_butikker", 1, 3, 1),
-      min_besparelse: tall(fd, "min_besparelse", 0, 10000, 50),
       postnummer: gyldig ? postnummer : null,
       hverdag_minutter: tall(fd, "hverdag_minutter", 10, 240, 45),
       onsker: tekst(fd, "onsker", 1000),
@@ -314,7 +313,7 @@ export async function sendTilHandleliste(fd: FormData) {
   if (!meny) redirect("/middag");
   const inn = await hentInnstillinger(supabase, hid);
   const innkjop = valgteInnkjop(meny);
-  const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling);
+  const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
   const fordeling = aktiv?.butikker ?? inn.butikker.slice(0, 1);
   const plassering = aktiv?.plassering ?? {};
 

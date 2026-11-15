@@ -86,22 +86,16 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
             : `Brukes til å finne tilbud i butikker i nærheten${inn.sted ? ` (${inn.sted})` : ""}.`}
         </p>
 
-        <div className="to-felt">
-          <label>
-            <span className="kt">Handle i inntil</span>
-            <select name="maks_butikker" defaultValue={inn.maks_butikker} className="felt">
-              <option value={1}>1 butikk</option>
-              <option value={2}>2 butikker</option>
-              <option value={3}>3 butikker</option>
-            </select>
-          </label>
-          <label>
-            <span className="kt">Del opp hvis vi sparer</span>
-            <input name="min_besparelse" type="number" inputMode="numeric" min={0} max={10000} defaultValue={inn.min_besparelse} className="felt" />
-          </label>
-        </div>
+        <label>
+          <span className="kt">Handle i inntil</span>
+          <select name="maks_butikker" defaultValue={inn.maks_butikker} className="felt">
+            <option value={1}>1 butikk</option>
+            <option value={2}>2 butikker</option>
+            <option value={3}>3 butikker</option>
+          </select>
+        </label>
         <p className="dempet liten" style={{ marginTop: -6 }}>
-          Kroner. Handlelisten velger bare å fordele handelen når den blir så mye billigere, men du kan alltid velge selv.
+          «Billigst» på handlelisten for uka fordeler handelen på inntil så mange butikker. Du ser hva hver butikk alene koster, og kan bytte.
         </p>
 
         <label htmlFor="onsker" className="kt">
