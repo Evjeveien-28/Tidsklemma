@@ -22,8 +22,8 @@ export default async function OppskriftSide({ params, searchParams }: { params: 
       {lest && <p className="dempet">Hentet fra siden. Sjekk gjerne at alt ble riktig.</p>}
       {(ulest || o.trenger_utfylling) && (
         <div className="kort stiplet">
-          <p className="kt">Fylles inn automatisk</p>
-          <p>Fant ikke oppskriften i lesbar form på siden. Den fylles inn neste gang ukesmenyen lages, eller du kan skrive den inn selv under «Endre».</p>
+          <p className="kt">Mangler ingredienser</p>
+          <p>Fant ikke oppskriften i lesbar form på siden. Skriv inn ingrediensene under «Endre», så kan den komme med i ukesmenyen.</p>
         </div>
       )}
       <Bilde src={o.bilde_url} className="ostort" />

@@ -65,7 +65,7 @@ export default async function Oppskrifter({ searchParams }: { searchParams: Prom
                   <small>
                     {[o.minutter && `${o.minutter} min`, o.porsjoner && `${o.porsjoner} pers.`, ...o.merkelapper].filter(Boolean).join(" · ")}
                   </small>
-                  {o.trenger_utfylling && <small className="ventende-merke">Fylles inn automatisk</small>}
+                  {o.trenger_utfylling && <small className="ventende-merke">Mangler ingredienser</small>}
                 </span>
               </Link>
               <Stjerne id={o.id} pa={o.favoritt} tilbake="liste" />

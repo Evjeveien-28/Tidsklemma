@@ -1,5 +1,7 @@
 /** Leser en oppskrift fra en nettside, fra dataene oppskriftssidene legger ut for Google (schema.org Recipe). */
 
+import { hentTrygt } from "./trygg-henting";
+
 export type LestOppskrift = {
   navn: string;
   ingredienser: string[];
@@ -82,7 +84,9 @@ function bilde(v: unknown, base: string): string | null {
   const src = typeof forste === "string" ? forste : ((forste as Node | undefined)?.url as string | undefined);
   if (!src) return null;
   try {
-    return new URL(src, base).href;
+    // Bare vanlige nettadresser: ikke data:-bilder eller andre skjemaer, og ikke urimelig lange.
+    const u = new URL(src, base);
+    return (u.protocol === "https:" || u.protocol === "http:") && u.href.length <= 2000 ? u.href : null;
   } catch {
     return null;
   }
@@ -110,16 +114,7 @@ export function sideTittel(html: string): string | null {
   return t ? rens(t).slice(0, 200) : null;
 }
 
+/** Henter siden en lenke peker til. Bare offentlige nettsider, se trygg-henting.ts. */
 export async function hentSide(url: string): Promise<string | null> {
-  try {
-    const svar = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; Tidsklemma/1.0)", Accept: "text/html" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(15_000),
-      cache: "no-store",
-    });
-    return svar.ok ? await svar.text() : null;
-  } catch {
-    return null;
-  }
+  return hentTrygt(url);
 }

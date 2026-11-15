@@ -36,7 +36,7 @@ export default async function NyOppskrift({ searchParams }: { searchParams: Prom
         </label>
         <input id="lenke" name="lenke" type="url" inputMode="url" required defaultValue={lenke} placeholder="https://www.matprat.no/oppskrifter/…" className="felt" autoFocus />
         <p className="dempet liten" style={{ marginTop: -4 }}>
-          Navn, ingredienser, tid og porsjoner hentes fra siden. Går ikke det, lagres lenken og fylles ut automatisk senere.
+          Navn, ingredienser, tid og porsjoner hentes fra siden. Går ikke det, lagres lenken, og du kan skrive inn ingrediensene selv.
         </p>
         <HentKnapp />
       </form>
