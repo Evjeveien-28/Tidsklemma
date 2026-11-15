@@ -8,7 +8,8 @@ import { startPaNytt, velgRett } from "./actions";
 import { agentKlar } from "./agent/start";
 import { butikkNavn } from "./butikker";
 import { hentInnstillinger, hentMeny, hentOppskrifter, hentSisteBestilling, hentTilbudFraDb, UKEDAGER } from "./data";
-import { valgteInnkjop, valgteRetter } from "./meny";
+import { ukensInnkjop } from "./egne";
+import { valgteRetter } from "./meny";
 import { prisoversikt } from "./pris";
 import { Oppdater } from "./oppdater";
 import { merkSett } from "./status";
@@ -60,7 +61,8 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
   const navnPa = new Map(oppskrifter.map((o) => [o.id, o.navn]));
   // Er det dager igjen å lage meny for? På søndag er «denne uka» som regel over.
   const igjen = middagsdager(uke, inn.dager).length > 0;
-  const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, meny.valg.fordeling) : null;
+  const ukens = meny ? (await ukensInnkjop(supabase, meny, inn.basisvarer)).innkjop : [];
+  const sum = meny ? prisoversikt(ukens, inn.butikker, inn.maks_butikker, meny.valg.fordeling) : null;
 
   const menyInnhold = meny && (
     <>
@@ -156,7 +158,7 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
         <span>
           <span className="kt">Handleliste for uka</span>
           <b>
-            {valgteInnkjop(meny).length} varer
+            {ukens.length} varer
             {sum?.aktiv && ` · ca. ${kroner.format(sum.aktiv.sum)} kr`}
           </b>
           {sum?.aktiv && (

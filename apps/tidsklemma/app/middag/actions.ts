@@ -6,10 +6,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentHusstand } from "../planter/data";
 import { BUTIKKER } from "./butikker";
-import { sokOda } from "../handleliste/oda";
 import { hentPersoner } from "../husstand/personer";
 import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesBasisvarer, lesMerkelapper } from "./data";
-import { valgteInnkjop, valgteRetter, type Valg } from "./meny";
+import { ukensInnkjop } from "./egne";
+import type { Valg } from "./meny";
 import { prisHos, prisoversikt } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
@@ -354,14 +354,13 @@ async function erSendt(supabase: Klient, hid: string, uke: string): Promise<bool
 /**
  * Legger innkjøpene for de valgte rettene i Handleliste, med butikk. Middagsvarene for uka som ikke er kjøpt ennå,
  * byttes ut, så listen følger menyen. Det som allerede er krysset av som kjøpt, legges ikke til en gang til.
- * Egne oppskrifter får ingrediensene sine som vanlige varer, med pris anslått fra Oda.
+ * Egne oppskrifter er med som vanlige varer, med pris anslått fra Oda (se egne.ts).
  */
 async function synkHandleliste(supabase: Klient, hid: string, uke: string): Promise<{ error: unknown }> {
-  const db = supabase.schema("middag");
   const meny = await hentMeny(supabase, hid, uke);
   if (!meny) return { error: "ingen meny" };
   const inn = await hentInnstillinger(supabase, hid);
-  const innkjop = valgteInnkjop(meny);
+  const { innkjop } = await ukensInnkjop(supabase, meny, inn.basisvarer);
   const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
   const fordeling = aktiv?.butikker ?? inn.butikker.slice(0, 1);
   const plassering = aktiv?.plassering ?? {};
@@ -379,16 +378,6 @@ async function synkHandleliste(supabase: Klient, hid: string, uke: string): Prom
       kilde_uke: uke,
     };
   });
-  // Egne oppskrifter: ingrediensene som de står, med pris fra Oda.
-  const egne = valgteRetter(meny).filter((r) => r.type === "egen").map((r) => (r.type === "egen" ? r.oppskrift_id : ""));
-  if (egne.length) {
-    const { data: oppskrifter } = await db.from("oppskrifter").select("id, ingredienser").in("id", egne);
-    const linjer = (oppskrifter ?? []).flatMap((o) => o.ingredienser as string[]).slice(0, 60);
-    const funnet = await Promise.all(linjer.map((l) => sokOda(l.replace(/^[\d.,/\s]+(g|kg|dl|l|ss|ts|stk\.?|pk\.?|boks|ml)?\s+/i, ""), 1)));
-    linjer.forEach((l, n) =>
-      rader.push({ household_id: hid, navn: l.slice(0, 120), antall: 1, butikk: fordeling[0] ?? null, produkt: funnet[n]![0] ?? null, kilde: "middag", kilde_uke: uke }),
-    );
-  }
 
   const hl = supabase.schema("handleliste");
   const { data: kjopt } = await hl.from("varer").select("navn").eq("household_id", hid).eq("kilde", "middag").eq("kilde_uke", uke).not("avkrysset_at", "is", null);
