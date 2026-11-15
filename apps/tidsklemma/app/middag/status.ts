@@ -36,7 +36,7 @@ export async function middagStatus(supabase: Klient, husstand: string): Promise<
   const retter = liste
     .sort((a, b) => a.uke_start.localeCompare(b.uke_start))
     .flatMap((m) => valgteRetter(m))
-    .filter((r) => r.dag.dato >= idag);
+    .filter((r) => r.dag.dato >= idag && r.type !== "fri");
   const kommende = retter[0];
   if (!kommende) return null;
   let navn = kommende.type === "alternativ" ? kommende.alt.navn : null;

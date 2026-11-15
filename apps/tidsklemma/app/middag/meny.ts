@@ -16,6 +16,8 @@ export type Innkjop = {
   priser: Record<string, Pris>;
   /** Vanlig pris (fra Oda), brukt der butikken ikke har egen pris. */
   referanse: number | null;
+  /** Har vi trolig igjen fra forrige uke, f.eks. «Ca. 750 g igjen fra forrige uke». Står da under «Har hjemme». */
+  rest?: string;
 };
 
 export type Alternativ = {
@@ -30,14 +32,17 @@ export type Alternativ = {
   bruker: string[];
 };
 
-export type Dag = { dato: string; personer: number; alternativer: Alternativ[] };
+/** `fri`: husstanden vil ikke ha middag denne dagen (rester, ute). Alternativene er der i tilfelle de ombestemmer seg. */
+export type Dag = { dato: string; personer: number; alternativer: Alternativ[]; fri?: boolean };
 
 export type MenyData = { dager: Dag[]; innkjop: Innkjop[]; merknad?: string };
 
 /** Husstandens valg: alternativ eller egen oppskrift per dato, varer vi har hjemme, og valgt fordeling av handelen. */
 export type Valg = {
-  dager?: Record<string, { alt?: number; oppskrift_id?: string }>;
+  dager?: Record<string, { alt?: number; oppskrift_id?: string; fri?: boolean }>;
   har?: string[];
+  /** Rester agenten trodde vi hadde, men som vi likevel må kjøpe. */
+  trenger?: string[];
   fordeling?: string[];
 };
 
@@ -45,11 +50,14 @@ export type Meny = { id: string; uke_start: string; data: MenyData; valg: Valg; 
 
 export type ValgtRett =
   | { type: "alternativ"; dag: Dag; indeks: number; alt: Alternativ }
-  | { type: "egen"; dag: Dag; oppskrift_id: string };
+  | { type: "egen"; dag: Dag; oppskrift_id: string }
+  /** Ingen middag denne dagen, f.eks. rester eller middag ute. */
+  | { type: "fri"; dag: Dag };
 
 export function valgteRetter(meny: Pick<Meny, "data" | "valg">): ValgtRett[] {
   return meny.data.dager.map((dag) => {
     const v = meny.valg.dager?.[dag.dato];
+    if (v?.fri || (dag.fri && !v)) return { type: "fri", dag };
     if (v?.oppskrift_id && !dag.alternativer.some((a) => a.oppskrift_id === v.oppskrift_id))
       return { type: "egen", dag, oppskrift_id: v.oppskrift_id };
     const indeks = v?.oppskrift_id
@@ -59,9 +67,13 @@ export function valgteRetter(meny: Pick<Meny, "data" | "valg">): ValgtRett[] {
   });
 }
 
+/** Har vi varen hjemme: krysset av selv, eller en rest fra forrige uke vi ikke har sagt at vi trenger. */
+export function harHjemme(meny: Pick<Meny, "valg">, i: Innkjop): boolean {
+  return (meny.valg.har ?? []).includes(i.id) || (Boolean(i.rest) && !(meny.valg.trenger ?? []).includes(i.id));
+}
+
 /** Innkjøpene de valgte rettene trenger, uten det vi har hjemme. */
 export function valgteInnkjop(meny: Pick<Meny, "data" | "valg">, medHjemme = false): Innkjop[] {
   const ider = new Set(valgteRetter(meny).flatMap((r) => (r.type === "alternativ" ? r.alt.bruker : [])));
-  const har = new Set(meny.valg.har ?? []);
-  return meny.data.innkjop.filter((i) => ider.has(i.id) && (medHjemme || !har.has(i.id)));
+  return meny.data.innkjop.filter((i) => ider.has(i.id) && (medHjemme || !harHjemme(meny, i)));
 }

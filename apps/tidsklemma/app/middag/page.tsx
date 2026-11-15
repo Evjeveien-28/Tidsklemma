@@ -65,6 +65,22 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
       {meny.data.merknad && <p className="dempet">{meny.data.merknad}</p>}
       <ul className="mdager">
         {retter.map((r) => {
+          if (r.type === "fri")
+            return (
+              <li key={r.dag.dato} id={r.dag.dato} className="mdag">
+                <p className="kt">{dagTekst(r.dag.dato)}</p>
+                <span className="mrett mfri">Ingen middag</span>
+                <small className="dempet">Rester, middag ute eller noe annet</small>
+                <form action={velgRett}>
+                  <input type="hidden" name="uke" value={uke} />
+                  <input type="hidden" name="dato" value={r.dag.dato} />
+                  <input type="hidden" name="valg" value={`alt:0`} />
+                  <button type="submit" className="inline-knapp">
+                    Lag middag likevel
+                  </button>
+                </form>
+              </li>
+            );
           const egen = r.type === "egen";
           const navn = egen ? (navnPa.get(r.oppskrift_id) ?? "Egen oppskrift") : r.alt.navn;
           const oppskriftId = egen ? r.oppskrift_id : r.alt.oppskrift_id;
@@ -97,6 +113,10 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
                       </span>
                     </label>
                   ))}
+                  <label className="radio">
+                    <input type="radio" name="valg" value="fri" />
+                    <span>Ingen middag (rester, ute e.l.)</span>
+                  </label>
                   <label className="radio">
                     <input type="radio" name="valg" value="egen" defaultChecked={egen} />
                     <span>Egen oppskrift:</span>

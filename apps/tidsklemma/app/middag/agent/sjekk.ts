@@ -46,7 +46,9 @@ export function sjekkMeny(inn: unknown): { meny: MenyData; feil: [] } | { meny: 
         }
       const navn = tekst(x?.navn, `${hvor}.navn`, 120);
       const bruk = tekst(x?.bruk, `${hvor}.bruk`, 200, true);
-      if (id && navn) innkjop.push({ id, navn, ...(bruk && { bruk }), priser, referanse: tall(x?.referanse, `${hvor}.referanse`, 0, 10000) });
+      const rest = tekst(x?.rest, `${hvor}.rest`, 200, true);
+      if (id && navn)
+        innkjop.push({ id, navn, ...(bruk && { bruk }), ...(rest && { rest }), priser, referanse: tall(x?.referanse, `${hvor}.referanse`, 0, 10000) });
     });
 
   const dager: Dag[] = [];
@@ -73,7 +75,7 @@ export function sjekkMeny(inn: unknown): { meny: MenyData; feil: [] } | { meny: 
           if (oppskrift_id && navn)
             alternativer.push({ oppskrift_id, navn, ...(begrunnelse && { begrunnelse }), ...(tilpasninger.length && { tilpasninger }), minutter, bruker: [...new Set(bruker)] });
         });
-      if (dato && personer != null) dager.push({ dato, personer: Math.round(personer), alternativer });
+      if (dato && personer != null) dager.push({ dato, personer: Math.round(personer), alternativer, ...(d?.fri === true && { fri: true }) });
     });
 
   const merknad = tekst(m.merknad, "merknad", 500, true);
