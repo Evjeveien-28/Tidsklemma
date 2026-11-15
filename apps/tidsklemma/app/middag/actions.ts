@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentHusstand } from "../planter/data";
@@ -12,6 +13,7 @@ import { valgteInnkjop, valgteRetter, type Valg } from "./meny";
 import { prisHos, prisoversikt, summer } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
+import { startAgent } from "./agent/start";
 
 async function husstanden() {
   const supabase = await createClient();
@@ -251,6 +253,8 @@ export async function bestill(fd: FormData) {
     });
   if (dager.length === 0) redirect(`/middag/planlegg?uke=${uke}&feil=dager`);
   const { error } = await db.from("bestillinger").insert({ household_id: hid, uke_start: uke, dager });
+  // Start agenten etter at svaret er sendt, så knappen ikke venter på claude.ai.
+  if (!error) after(startAgent);
   revalidatePath("/middag", "layout");
   redirect(error ? `/middag/planlegg?uke=${uke}&feil=lagre` : `/middag?uke=${uke}`);
 }
@@ -342,4 +346,12 @@ export async function sendTilHandleliste(fd: FormData) {
   const { error } = await hl.from("varer").insert(rader);
   revalidatePath("/", "layout");
   redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
+}
+
+/** Menyen lar vente på seg: start agenten igjen. Bestillingen er den samme. */
+export async function startPaNytt(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  await husstanden();
+  await startAgent();
+  redirect(`/middag${erDato(uke) ? `?uke=${uke}` : ""}`);
 }

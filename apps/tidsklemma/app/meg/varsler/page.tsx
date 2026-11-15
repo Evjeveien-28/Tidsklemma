@@ -34,6 +34,7 @@ export default async function Varsler() {
   const { data } = await supabase.from("push_innstillinger").select("kalender, planter, planter_tid").maybeSingle();
   const inn = { kalender: data?.kalender ?? true, planter: data?.planter ?? false, tid: (data?.planter_tid ?? "08:00").slice(0, 5) };
 
+  const { data: middag } = await supabase.from("push_innstillinger").select("middag").maybeSingle();
   return (
     <Side tittel="Varsler" tilbake={{ href: "/meg", navn: "Meg" }}>
       {!pushKlar() ? (
@@ -68,6 +69,7 @@ export default async function Varsler() {
             </button>
           </form>
         )}
+        <Bryter felt="middag" pa={middag?.middag ?? true} tekst="Middag" under="Når ukesmenyen er klar" />
       </div>
       <p className="dempet liten">Valgene gjelder alle enhetene dine. Hver telefon må slå på varsler for seg.</p>
     </Side>

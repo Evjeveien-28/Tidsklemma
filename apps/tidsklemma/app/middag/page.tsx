@@ -4,7 +4,8 @@ import { iDag, leggTilDager } from "../dato";
 import { DatabaseFeil } from "../database-feil";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
-import { velgRett } from "./actions";
+import { startPaNytt, velgRett } from "./actions";
+import { agentKlar } from "./agent/start";
 import { butikkNavn } from "./butikker";
 import { hentInnstillinger, hentMeny, hentOppskrifter, hentSisteBestilling, hentTilbudFraDb, UKEDAGER } from "./data";
 import { valgteInnkjop, valgteRetter } from "./meny";
@@ -72,7 +73,18 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
       {venter && (
         <div className="kort stiplet">
           <p className="kt">Menyen lages</p>
-          <p>Bestilt {tid.format(new Date(bestilling!.created_at))}. Den er klar innen en time.</p>
+          <p>
+            Bestilt {tid.format(new Date(bestilling!.created_at))}.{" "}
+            {agentKlar() ? "Den er klar om noen minutter, og du får et varsel." : "Den lages søndag kveld, når agenten kjører fast."}
+          </p>
+          {agentKlar() && Date.now() - new Date(bestilling!.created_at).getTime() > 20 * 60_000 && (
+            <form action={startPaNytt}>
+              <input type="hidden" name="uke" value={uke} />
+              <button type="submit" className="inline-knapp">
+                Det tar lang tid. Prøv igjen
+              </button>
+            </form>
+          )}
         </div>
       )}
       {feilet && (

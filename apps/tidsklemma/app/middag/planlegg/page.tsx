@@ -72,7 +72,7 @@ export default async function Planlegg({ searchParams }: { searchParams: Promise
           ))}
           <BestillKnapp />
           <p className="dempet liten" style={{ textAlign: "center" }}>
-            Menyen er klar innen en time, med tre forslag per dag. Lager dere ny meny for samme uke, erstatter den den gamle.
+            Menyen er klar om noen minutter, med tre forslag per dag. Lager dere ny meny for samme uke, erstatter den den gamle.
           </p>
         </form>
       )}

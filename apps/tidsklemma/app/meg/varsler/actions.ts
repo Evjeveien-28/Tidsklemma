@@ -38,6 +38,12 @@ export async function lagreInnstilling(formData: FormData) {
   const supabase = await createClient();
   const { data: meg } = await supabase.auth.getClaims();
   if (!meg) redirect("/logg-inn");
+  if (felt === "middag") {
+    // Middag lagres for seg, så denne delen kan endres uten å røre de andre bryterne.
+    await supabase.from("push_innstillinger").upsert({ user_id: meg.claims.sub, middag: formData.get("pa") === "1" }, { onConflict: "user_id" });
+    revalidatePath("/meg/varsler");
+    redirect("/meg/varsler");
+  }
   let endring: Record<string, unknown>;
   if (felt === "kalender" || felt === "planter") endring = { [felt]: formData.get("pa") === "1" };
   else if (felt === "planter_tid" && /^([01]\d|2[0-3]):[0-5]\d$/.test(String(formData.get("tid")))) endring = { planter_tid: `${formData.get("tid")}:00` };
