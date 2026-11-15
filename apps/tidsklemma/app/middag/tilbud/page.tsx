@@ -6,7 +6,8 @@ import { Side } from "../../side";
 import { hentTilbudNa } from "../actions";
 import { Bilde } from "../bilde";
 import { butikkNavn } from "../butikker";
-import { hentInnstillinger, hentTilbudFraDb, type Innstillinger, type Tilbud } from "../data";
+import { hentInnstillinger, hentOppskrifter, hentTilbudFraDb, type Innstillinger, type Oppskrift, type Tilbud } from "../data";
+import { lagMatcher } from "../tilbud-match";
 import { HentKnapp } from "./hent-knapp";
 
 const kr = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 2 });
@@ -28,15 +29,19 @@ function mengde(t: Tilbud) {
   return `${m} ${t.enhet}`;
 }
 
-export default async function UkensTilbud({ searchParams }: { searchParams: Promise<{ butikk?: string; q?: string; feil?: string }> }) {
-  const { butikk, q, feil } = await searchParams;
+export default async function UkensTilbud({ searchParams }: { searchParams: Promise<{ butikk?: string; q?: string; feil?: string; vis?: string }> }) {
+  const { butikk, q, feil, vis: visning } = await searchParams;
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
   const tilbake = { href: "/middag", navn: "Middag" };
   if (!husstand) return <Side tittel="Ukens tilbud" tilbake={tilbake}><p>Du er ikke medlem av en husstand ennå.</p></Side>;
-  let inn: Innstillinger, tilbud: Tilbud[];
+  let inn: Innstillinger, tilbud: Tilbud[], oppskrifter: Oppskrift[];
   try {
-    [inn, tilbud] = await Promise.all([hentInnstillinger(supabase, husstand.id), hentTilbudFraDb(supabase, husstand.id)]);
+    [inn, tilbud, oppskrifter] = await Promise.all([
+      hentInnstillinger(supabase, husstand.id),
+      hentTilbudFraDb(supabase, husstand.id),
+      hentOppskrifter(supabase, husstand.id),
+    ]);
   } catch (e) {
     return (
       <Side tittel="Ukens tilbud" tilbake={tilbake}>
@@ -51,11 +56,22 @@ export default async function UkensTilbud({ searchParams }: { searchParams: Prom
   const sok = (q ?? "").trim().toLowerCase();
   const rang = (k: string) => (inn.butikker.indexOf(k) + 1 || 99);
   const rabatt = (t: Tilbud) => (t.forpris && t.forpris > t.pris ? (t.forpris - t.pris) / t.forpris : 0);
+  // «Til oppskriftene våre» (standard): bare tilbud som passer til kokeboka, flest retter og størst rabatt først.
+  const alle = visning === "alle" || oppskrifter.length === 0;
+  const match = lagMatcher(oppskrifter, inn.basisvarer);
+  const treff = new Map(gyldige.map((t) => [t.id, match(t.navn)]));
+  const poeng = (t: Tilbud) => treff.get(t.id)!.retter.length + treff.get(t.id)!.favoritter * 0.5;
   const vis = gyldige
     .filter((t) => (!valgt || t.butikk === valgt) && (!sok || `${t.navn} ${t.beskrivelse}`.toLowerCase().includes(sok)))
-    .sort((a, b) => rang(a.butikk) - rang(b.butikk) || rabatt(b) - rabatt(a) || a.navn.localeCompare(b.navn, "nb"));
+    .filter((t) => alle || poeng(t) > 0)
+    .sort((a, b) =>
+      alle
+        ? rang(a.butikk) - rang(b.butikk) || rabatt(b) - rabatt(a) || a.navn.localeCompare(b.navn, "nb")
+        : poeng(b) - poeng(a) || rabatt(b) - rabatt(a) || rang(a.butikk) - rang(b.butikk) || a.pris - b.pris,
+    );
   const hentet = tilbud.map((t) => t.hentet_at).sort().at(-1);
-  const lenke = (b: string | null) => `/middag/tilbud?${new URLSearchParams({ ...(b ? { butikk: b } : {}), ...(sok ? { q: sok } : {}) })}`;
+  const lenke = (b: string | null, v = alle ? "alle" : null) =>
+    `/middag/tilbud?${new URLSearchParams({ ...(v ? { vis: v } : {}), ...(b ? { butikk: b } : {}), ...(sok ? { q: sok } : {}) })}`;
 
   return (
     <Side tittel="Ukens tilbud" tilbake={tilbake}>
@@ -73,6 +89,16 @@ export default async function UkensTilbud({ searchParams }: { searchParams: Prom
           <p className="dempet liten" style={{ marginTop: 0 }}>
             {gyldige.length} tilbud fra butikker innen 2 mil fra {inn.sted ?? inn.postnummer}.{hentet && ` Hentet ${tid.format(new Date(hentet))}.`}
           </p>
+          {oppskrifter.length > 0 && (
+            <nav className="segment" aria-label="Sortering">
+              <Link href={lenke(valgt, null)} aria-current={alle ? undefined : "page"}>
+                Til oppskriftene våre
+              </Link>
+              <Link href={lenke(valgt, "alle")} aria-current={alle ? "page" : undefined}>
+                Alle tilbud
+              </Link>
+            </nav>
+          )}
           <nav className="merkelapp-filter" aria-label="Butikk">
             <Link href={lenke(null)} className="merkelapp" aria-current={valgt ? undefined : "page"}>
               Alle
@@ -99,7 +125,13 @@ export default async function UkensTilbud({ searchParams }: { searchParams: Prom
 
           {vis.length === 0 ? (
             <div className="kort stiplet">
-              <p>{gyldige.length === 0 ? "Ingen tilbud hentet ennå. De hentes hver natt, eller du kan hente nå." : "Ingen treff."}</p>
+              <p>
+                {gyldige.length === 0
+                  ? "Ingen tilbud hentet ennå. De hentes hver natt, eller du kan hente nå."
+                  : !alle && !sok
+                    ? "Ingen tilbud passer til oppskriftene deres akkurat nå."
+                    : "Ingen treff."}
+              </p>
             </div>
           ) : (
             <ul className="tliste">
@@ -112,10 +144,14 @@ export default async function UkensTilbud({ searchParams }: { searchParams: Prom
                     <b>{t.navn.charAt(0) + t.navn.slice(1).toLowerCase()}</b>
                     <small>{[butikkNavn(t.butikk), mengde(t), `til ${dag.format(new Date(t.gyldig_til))}`].filter(Boolean).join(" · ")}</small>
                     {t.beskrivelse && <small className="tbeskrivelse">{t.beskrivelse}</small>}
+                    {treff.get(t.id)!.retter.length > 0 && (
+                      <small style={{ color: "#4c5a24" }}>Passer til {treff.get(t.id)!.retter.slice(0, 3).join(", ")}{treff.get(t.id)!.retter.length > 3 ? ` og ${treff.get(t.id)!.retter.length - 3} til` : ""}</small>
+                    )}
                   </span>
                   <span className="tpris">
                     <b>{pris(t.pris)}</b>
                     {t.forpris && t.forpris > t.pris && <s>{pris(t.forpris)}</s>}
+                    {rabatt(t) >= 0.1 && <small style={{ color: "#4c5a24", fontWeight: 600 }}>−{Math.round(rabatt(t) * 100)} %</small>}
                   </span>
                 </li>
               ))}
