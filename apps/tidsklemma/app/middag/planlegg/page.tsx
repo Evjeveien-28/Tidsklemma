@@ -36,7 +36,11 @@ export default async function Planlegg({ searchParams }: { searchParams: Promise
           </p>
         </div>
       )}
-      {feil && <p className="feil">{feil === "dager" ? "Det er ingen dager igjen denne uka. Velg neste uke." : "Det gikk ikke å bestille. Prøv igjen."}</p>}
+      {feil && <p className="feil">{feil === "dager"
+            ? "Det er ingen dager igjen denne uka. Velg neste uke."
+            : feil === "mange"
+              ? "Dere har bestilt mange menyer det siste døgnet. Vent litt før dere bestiller igjen."
+              : "Det gikk ikke å bestille. Prøv igjen."}</p>}
 
       {dager.length === 0 ? (
         <p>Det er ingen middagsdager igjen denne uka.</p>

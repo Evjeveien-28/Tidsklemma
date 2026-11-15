@@ -12,7 +12,7 @@ import { valgteInnkjop, valgteRetter } from "./meny";
 import { prisoversikt } from "./pris";
 import { Oppdater } from "./oppdater";
 import { merkSett } from "./status";
-import { dagTekst, mandagI, standardUke, ukeTekst } from "./uke";
+import { dagTekst, mandagI, middagsdager, standardUke, ukeTekst } from "./uke";
 
 const tilbake = { href: "/", navn: "Tilbake" };
 const tid = new Intl.DateTimeFormat("nb-NO", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" });
@@ -58,6 +58,8 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
   const feilet = bestilling?.status === "feil" && (!meny || bestilling.created_at > meny.laget_at);
   const retter = meny ? valgteRetter(meny) : [];
   const navnPa = new Map(oppskrifter.map((o) => [o.id, o.navn]));
+  // Er det dager igjen å lage meny for? På søndag er «denne uka» som regel over.
+  const igjen = middagsdager(uke, inn.dager).length > 0;
   const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, meny.valg.fordeling) : null;
 
   const menyInnhold = meny && (
@@ -89,9 +91,14 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
               <p className="kt">
                 {dagTekst(r.dag.dato)} · {r.dag.personer} pers.
               </p>
-              <Link href={`/middag/oppskrifter/${oppskriftId}`} className="mrett">
-                {navn}
-              </Link>
+              {navnPa.has(oppskriftId) ? (
+                <Link href={`/middag/oppskrifter/${oppskriftId}`} className="mrett">
+                  {navn}
+                </Link>
+              ) : (
+                // Oppskriften er slettet fra kokeboka etter at menyen ble laget.
+                <span className="mrett">{navn}</span>
+              )}
               {!egen && r.alt.begrunnelse && <small className="mgrunn">{r.alt.begrunnelse}</small>}
               {!egen && r.alt.tilpasninger?.map((t) => (
                 <small key={t} className="mtilpass">
@@ -212,16 +219,25 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
         ) : (
           menyInnhold
         ))}
-      {!meny && (
-        !venter && (
-          <div className="kort stiplet">
-            <p className="kt">Ingen meny ennå</p>
-            <p>Lag en meny for uka. Den velger blant oppskriftene deres ut fra tilbudene.</p>
-          </div>
-        )
+      {!meny && !venter && (
+        <div className="kort stiplet">
+          {igjen ? (
+            <>
+              <p className="kt">Ingen meny ennå</p>
+              <p>Lag en meny for uka. Den velger blant oppskriftene deres ut fra tilbudene.</p>
+            </>
+          ) : (
+            <>
+              <p className="kt">Uka er snart over</p>
+              <p>
+                Det er ingen middagsdager igjen denne uka. <Link href={`/middag?uke=${neste}`}>Planlegg neste uke ›</Link>
+              </p>
+            </>
+          )}
+        </div>
       )}
 
-      {!venter && (
+      {!venter && igjen && (
         <Link href={`/middag/planlegg?uke=${uke}`} className={meny ? "sekundar mlag" : "primar"}>
           {meny ? "Lag ny meny" : "Lag meny"}
         </Link>

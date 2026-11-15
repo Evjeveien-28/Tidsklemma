@@ -14,6 +14,8 @@ import { prisHos, prisoversikt } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
 import { startAgent } from "./agent/start";
+import { iDag, leggTilDager } from "../dato";
+import { mandagI } from "./uke";
 
 async function husstanden() {
   const supabase = await createClient();
@@ -234,8 +236,18 @@ const erDato = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d);
 /** Bestill en meny for uka. Hver dag: egen oppskrift eller «la menyen foreslå», hvem som er med, og gjester. */
 export async function bestill(fd: FormData) {
   const uke = String(fd.get("uke") ?? "");
-  if (!erDato(uke)) redirect("/middag");
+  const denne = mandagI(iDag());
+  if (uke !== denne && uke !== leggTilDager(denne, 7)) redirect("/middag");
   const { supabase, db, hid } = await husstanden();
+  // Hver bestilling starter agenten, som bruker av kvoten. Vent på den som er i gang, og ikke mer enn ti i døgnet.
+  const { data: nylige } = await db
+    .from("bestillinger")
+    .select("uke_start, status, created_at")
+    .eq("household_id", hid)
+    .gte("created_at", new Date(Date.now() - 86_400_000).toISOString());
+  const pagaende = (nylige ?? []).some((b) => b.uke_start === uke && (b.status === "venter" || b.status === "jobber") && Date.parse(b.created_at) > Date.now() - 15 * 60_000);
+  if (pagaende) redirect(`/middag?uke=${uke}`);
+  if ((nylige ?? []).length >= 10) redirect(`/middag/planlegg?uke=${uke}&feil=mange`);
   const alle = (await hentPersoner(supabase, hid)).map((p) => p.id);
   const dager = fd
     .getAll("dato")
@@ -276,6 +288,7 @@ export async function velgRett(fd: FormData) {
   const egen = String(fd.get("egen") ?? "");
   if (!erDato(uke) || !erDato(dato)) redirect("/middag");
   if (valg === "egen" && !/^[0-9a-f-]{36}$/.test(egen)) redirect(`/middag?uke=${uke}#${dato}`);
+  if (valg !== "egen" && valg !== "fri" && !/^alt:[0-2]$/.test(valg)) redirect(`/middag?uke=${uke}#${dato}`);
   await endreValg(uke, (v) => ({
     ...v,
     dager: { ...v.dager, [dato]: valg === "fri" ? { fri: true } : valg.startsWith("alt:") ? { alt: Number(valg.slice(4)) } : { oppskrift_id: egen } },
@@ -362,7 +375,15 @@ export async function sendTilHandleliste(fd: FormData) {
 /** Menyen lar vente på seg: start agenten igjen. Bestillingen er den samme. */
 export async function startPaNytt(fd: FormData) {
   const uke = String(fd.get("uke") ?? "");
-  await husstanden();
-  await startAgent();
+  const { db, hid } = await husstanden();
+  // Bare når en bestilling har ventet en stund, så knappen ikke kan brukes til å starte agenten om og om igjen.
+  const { data } = await db
+    .from("bestillinger")
+    .select("id")
+    .eq("household_id", hid)
+    .eq("status", "venter")
+    .lt("created_at", new Date(Date.now() - 15 * 60_000).toISOString())
+    .limit(1);
+  if (data?.length) await startAgent();
   redirect(`/middag${erDato(uke) ? `?uke=${uke}` : ""}`);
 }

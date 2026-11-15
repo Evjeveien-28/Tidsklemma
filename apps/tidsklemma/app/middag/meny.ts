@@ -61,8 +61,8 @@ export function valgteRetter(meny: Pick<Meny, "data" | "valg">): ValgtRett[] {
     if (v?.oppskrift_id && !dag.alternativer.some((a) => a.oppskrift_id === v.oppskrift_id))
       return { type: "egen", dag, oppskrift_id: v.oppskrift_id };
     const indeks = v?.oppskrift_id
-      ? dag.alternativer.findIndex((a) => a.oppskrift_id === v.oppskrift_id)
-      : Math.min(v?.alt ?? 0, dag.alternativer.length - 1);
+      ? Math.max(0, dag.alternativer.findIndex((a) => a.oppskrift_id === v.oppskrift_id))
+      : Math.max(0, Math.min(Math.floor(Number(v?.alt) || 0), dag.alternativer.length - 1));
     return { type: "alternativ", dag, indeks, alt: dag.alternativer[indeks]! };
   });
 }
