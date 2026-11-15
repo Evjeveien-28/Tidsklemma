@@ -10,7 +10,7 @@ import { sokOda } from "../handleliste/oda";
 import { hentPersoner } from "../husstand/personer";
 import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesMerkelapper } from "./data";
 import { valgteInnkjop, valgteRetter, type Valg } from "./meny";
-import { prisHos, prisoversikt, summer } from "./pris";
+import { prisHos, prisoversikt } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
 import { hentPosisjon, hentTilbud } from "./tilbud-hent";
 import { startAgent } from "./agent/start";
@@ -313,9 +313,9 @@ export async function sendTilHandleliste(fd: FormData) {
   if (!meny) redirect("/middag");
   const inn = await hentInnstillinger(supabase, hid);
   const innkjop = valgteInnkjop(meny);
-  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse);
-  const fordeling = meny.valg.fordeling?.length ? meny.valg.fordeling : (oversikt.billigst?.butikker ?? inn.butikker.slice(0, 1));
-  const plassering = summer(innkjop, fordeling).plassering;
+  const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling);
+  const fordeling = aktiv?.butikker ?? inn.butikker.slice(0, 1);
+  const plassering = aktiv?.plassering ?? {};
 
   const rader: Record<string, unknown>[] = innkjop.map((i) => {
     const butikk = plassering[i.id] ?? fordeling[0]!;

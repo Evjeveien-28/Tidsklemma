@@ -48,6 +48,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
    - \`bytt\`: retten kan brukes, men bytt ingrediensen for alle. Skriv det i \`tilpasninger\`, f.eks. «Bruk glutenfri pasta».
    - \`variant\`: lag en egen variant til den det gjelder, f.eks. «Glutenfri pasta til Mia». Kjøp inn erstatningen.
    - \`grad\` = \`streng\`: ingen spor. \`hoved\`: bare hovedingredienser teller, litt i saus går fint. \`helst\`: velg uten når det er enkelt.
+   - \`tilpasninger\` vises som «Husk: …» under retten. Skriv dem som en kort beskjed om hva kokken gjør annerledes enn oppskriften, f.eks. «Nøytral olje i stedet for peanøttolje». Erstatninger som må kjøpes, skal stå i innkjøpene.
    - Bruk \`erstatning\` hvis den er fylt ut. Oppskrifter med \`trygg: true\` er allerede tilpasset og skal ikke endres.
 4. **Rangering** av alternativene, viktigst først:
    - ingredienser på tilbud i husstandens butikker,
@@ -63,12 +64,15 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
    - Ta ikke med basisvarer de fleste har: salt, pepper, olje, smør til steking, mel, sukker, vanlige krydder, buljong.
    - Hvert alternativ har \`bruker\` med id-ene til innkjøpene det trenger.
 6. **Priser**:
-   - \`priser\` har en nøkkel per butikk-kode der du har en pris. Tilbud: \`{"pris": 39.9, "tilbud": true, "vare": "<navnet i kundeavisen>"}\`. Bruk bare tilbud som er samme slags vare i omtrent samme mengde.
+   - Alle priser på et innkjøp gjelder samme mengde som \`navn\`. Trengs to pakker, er prisen for begge.
+   - \`priser\` har en nøkkel per butikk-kode der du har en pris. Tilbud: \`{"pris": 39.9, "tilbud": true, "vare": "<navnet i kundeavisen>"}\`.
+   - Ta bare med et tilbud når det er samme slags vare i omtrent samme mengde, er billigere enn \`referanse\`, og fortsatt gjelder (\`gyldig_til\`) den dagen varen brukes. Et tilbud som er dyrere enn vanlig pris, er ikke et tilbud: utelat det.
    - \`referanse\` er vanlig pris for pakningen fra Oda (kall \`oda\`). Den brukes for butikkene uten egen pris. Velg treffet som passer best, ikke det billigste tilfeldige.
    - Har husstanden ODA_NO blant butikkene, sett \`priser.ODA_NO\` til Oda-prisen (med \`"tilbud": true\` bare hvis Oda har den på salg).
    - Finner du ingen pris, sett \`referanse\` til null.
 7. **Begrunnelse**: én kort setning per alternativ om hvorfor, f.eks. «Kyllingfilet på tilbud hos Kiwi» eller «Bruker resten av kyllingen fra mandag».
-8. **Merknad**: én eller to setninger om uka, f.eks. hva som er billig og hvor det lønner seg å handle.
+8. **Merknad**: én eller to setninger om uka, f.eks. hva som er på tilbud eller noe husstanden bør vite (en rett som må forberedes dagen før, en vare som ikke har pris).
+   Ikke anbefal butikker eller en fordeling av handelen. Det regner appen ut fra prisene, og husstanden velger selv.
 
 ## Formatet på meny
     {

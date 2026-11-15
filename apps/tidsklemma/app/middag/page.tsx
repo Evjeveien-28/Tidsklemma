@@ -54,7 +54,7 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
   const feilet = bestilling?.status === "feil" && (!meny || bestilling.created_at > meny.laget_at);
   const retter = meny ? valgteRetter(meny) : [];
   const navnPa = new Map(oppskrifter.map((o) => [o.id, o.navn]));
-  const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, inn.min_besparelse) : null;
+  const sum = meny ? prisoversikt(valgteInnkjop(meny), inn.butikker, inn.maks_butikker, inn.min_besparelse, meny.valg.fordeling) : null;
 
   return (
     <Side tittel="Middag" tilbake={tilbake}>
@@ -164,11 +164,12 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
               <span className="kt">Handleliste for uka</span>
               <b>
                 {valgteInnkjop(meny).length} varer
-                {sum?.billigst && ` · ca. ${kroner.format(sum.billigst.sum)} kr hos ${butikkNavn(sum.billigst.butikker[0]!)}`}
+                {sum?.aktiv && ` · ca. ${kroner.format(sum.aktiv.sum)} kr`}
               </b>
-              {sum?.fordelt && (
+              {sum?.aktiv && (
                 <small className="dempet">
-                  Eller ca. {kroner.format(sum.fordelt.sum)} kr fordelt på {sum.fordelt.butikker.map(butikkNavn).join(" og ")}
+                  {sum.aktiv.butikker.length > 1 ? `Fordelt på ${sum.aktiv.butikker.map(butikkNavn).join(" og ")}` : `Alt hos ${butikkNavn(sum.aktiv.butikker[0]!)}`}
+                  {sum.billigst && sum.aktiv.sum - sum.billigst.sum >= 1 && ` · ${kroner.format(sum.aktiv.sum - sum.billigst.sum)} kr dyrere enn billigst`}
                 </small>
               )}
             </span>
