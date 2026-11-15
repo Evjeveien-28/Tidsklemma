@@ -101,13 +101,29 @@ export default async function Innstillinger({ searchParams }: { searchParams: Pr
           </label>
         </div>
         <p className="dempet liten" style={{ marginTop: -6 }}>
-          Kroner. Handlelisten foreslår bare å fordele handelen når den blir så mye billigere.
+          Kroner. Handlelisten velger bare å fordele handelen når den blir så mye billigere, men du kan alltid velge selv.
         </p>
 
         <label htmlFor="onsker" className="kt">
           Ønsker <span className="valgfritt">(valgfritt)</span>
         </label>
         <textarea id="onsker" name="onsker" rows={3} maxLength={1000} defaultValue={inn.onsker} placeholder="F.eks. fisk minst én gang i uka, gjerne vegetar på mandager" className="felt" />
+
+        <label htmlFor="basisvarer" className="kt">
+          Har alltid hjemme
+        </label>
+        <textarea
+          id="basisvarer"
+          name="basisvarer"
+          rows={3}
+          maxLength={3000}
+          defaultValue={inn.basisvarer.join(", ")}
+          placeholder="salt, pepper, olje"
+          className="felt"
+        />
+        <p className="dempet liten" style={{ marginTop: -6 }}>
+          Skill med komma. Dette kommer ikke på handlelisten når menyen lages.
+        </p>
 
         <label className="avkryss">
           <input type="checkbox" name="aktiv" value="1" defaultChecked={inn.aktiv} />

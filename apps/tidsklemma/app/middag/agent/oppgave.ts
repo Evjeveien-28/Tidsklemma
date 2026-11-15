@@ -33,7 +33,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 - \`bestilling\`: \`uke_start\` (mandag) og \`dager\`. Hver dag har \`dato\`, \`oppskrift_id\` (satt hvis husstanden har valgt retten selv),
   \`borte\` (person-id-er som ikke spiser) og \`gjester\` (antall ekstra).
 - \`innstillinger\`: \`butikker\` i prioritert rekkefølge (koder som KIWI, COOP_EXTRA, REMA_1000, ODA_NO), \`maks_butikker\`,
-  \`min_besparelse\`, \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag) og \`onsker\` (fritekst).
+  \`min_besparelse\`, \`hverdag_minutter\` (hvor lang tid middagen helst tar mandag–fredag), \`onsker\` (fritekst) og \`basisvarer\` (det de alltid har hjemme).
 - \`personer\`: husstanden, med fødselsår. Barn under 12 spiser omtrent en halv voksenporsjon.
 - \`allergier\`: \`navn\`, \`person_id\` (null = alle), \`grad\` og \`handtering\` (se under), og \`erstatning\`.
 - \`oppskrifter\`: kokeboka. Du kan BARE bruke disse, med deres \`id\`. Aldri finn på nye retter.
@@ -61,7 +61,7 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 5. **Innkjøp**: lag én felles liste for hele uka, for ALLE alternativene (husstanden kan bytte).
    - Én rad per vare som må kjøpes, i en vanlig pakningsstørrelse, f.eks. «Kyllingfilet 1 kg». Slå sammen når flere retter bruker samme vare, og skriv i \`bruk\` hvordan den fordeles, f.eks. «600 g mandag, 400 g torsdag».
    - Skaler fra oppskriftens \`porsjoner\` til antallet som spiser.
-   - Ta ikke med basisvarer de fleste har: salt, pepper, olje, smør til steking, mel, sukker, vanlige krydder, buljong.
+   - Ta ikke med varene i \`innstillinger.basisvarer\`: det har husstanden alltid hjemme. Alt annet oppskriften trenger, skal med, også ting som soyasaus eller ris.
    - Hvert alternativ har \`bruker\` med id-ene til innkjøpene det trenger.
 6. **Priser**:
    - Alle priser på et innkjøp gjelder samme mengde som \`navn\`. Trengs to pakker, er prisen for begge.

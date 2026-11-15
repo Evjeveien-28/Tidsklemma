@@ -8,7 +8,7 @@ import { hentHusstand } from "../planter/data";
 import { BUTIKKER } from "./butikker";
 import { sokOda } from "../handleliste/oda";
 import { hentPersoner } from "../husstand/personer";
-import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesMerkelapper } from "./data";
+import { GRADER, HANDTERINGER, hentInnstillinger, hentMeny, lesBasisvarer, lesMerkelapper } from "./data";
 import { valgteInnkjop, valgteRetter, type Valg } from "./meny";
 import { prisHos, prisoversikt } from "./pris";
 import { hentSide, lesOppskrift, sideTittel } from "./les-oppskrift";
@@ -53,6 +53,7 @@ export async function lagreInnstillinger(fd: FormData) {
       postnummer: gyldig ? postnummer : null,
       hverdag_minutter: tall(fd, "hverdag_minutter", 10, 240, 45),
       onsker: tekst(fd, "onsker", 1000),
+      basisvarer: lesBasisvarer(String(fd.get("basisvarer") ?? "")),
       aktiv: fd.get("aktiv") === "1",
       updated_at: new Date().toISOString(),
     },

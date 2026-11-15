@@ -16,8 +16,17 @@ export type Innstillinger = {
   lng: number | null;
   hverdag_minutter: number;
   onsker: string;
+  /** Varer vi alltid har hjemme, som ikke kommer på handlelisten. */
+  basisvarer: string[];
   aktiv: boolean;
 };
+
+export const BASISVARER = ["salt", "pepper", "olje", "smør til steking", "hvetemel", "sukker", "tørket krydder", "buljong"];
+
+/** «salt, pepper\nolje» → ["salt", "pepper", "olje"]. */
+export function lesBasisvarer(tekst: string): string[] {
+  return [...new Set(tekst.split(/[,;\n]/).map((v) => v.trim().toLowerCase()).filter(Boolean))].slice(0, 100).map((v) => v.slice(0, 60));
+}
 
 export const STANDARD: Innstillinger = {
   dager: [1, 2, 3, 4, 5, 6, 7],
@@ -30,6 +39,7 @@ export const STANDARD: Innstillinger = {
   lng: null,
   hverdag_minutter: 45,
   onsker: "",
+  basisvarer: BASISVARER,
   aktiv: false,
 };
 
