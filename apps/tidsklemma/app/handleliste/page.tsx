@@ -4,7 +4,7 @@ import { BUTIKKER, butikkNavn } from "../middag/butikker";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
 import { fjernAvkryssede, leggTil } from "./actions";
-import { anslag, finnTilbud, hentVarer, kr, produktTekst, type Vare } from "./data";
+import { anslag, finnTilbud, hentEgneButikker, hentVarer, kr, produktTekst, type Vare } from "./data";
 import { ButikkVelger } from "./butikk-velger";
 import { LeggTilKnapp } from "./legg-til-knapp";
 import { Liste, type Rad } from "./liste";
@@ -74,7 +74,10 @@ export default async function Handleliste() {
   const { data: inn } = await supabase.schema("middag").from("innstillinger").select("butikker").eq("household_id", husstand.id).maybeSingle();
   const rekkefolge = ((inn?.butikker as string[] | undefined) ?? []);
   // Butikkene man kan velge når man legger til: husstandens fra Middag, ellers alle.
-  const valgbare = rekkefolge.length ? rekkefolge.map((k) => ({ kode: k, navn: butikkNavn(k) })) : BUTIKKER.map((b) => ({ kode: b.kode, navn: b.navn }));
+  const kjeder = rekkefolge.length ? rekkefolge.map((k) => ({ kode: k, navn: butikkNavn(k) })) : BUTIKKER.map((b) => ({ kode: b.kode, navn: b.navn }));
+  // Pluss egne butikker, f.eks. «Clas Ohlson». Der er navnet også koden.
+  const egne = await hentEgneButikker(supabase, husstand.id, varer, new Set(BUTIKKER.map((b) => b.kode)));
+  const valgbare = [...kjeder, ...egne.filter((n) => !kjeder.some((k) => k.kode === n)).map((n) => ({ kode: n, navn: n }))];
 
   const igjen = varer.filter((v) => !v.avkrysset_at);
   const kurven = varer.filter((v) => v.avkrysset_at);
@@ -99,7 +102,7 @@ export default async function Handleliste() {
         </label>
         <input id="tekst" name="tekst" required maxLength={500} autoComplete="off" placeholder="F.eks. melk, 2 brød, oppvaskmiddel" className="felt" />
         <LeggTilKnapp />
-        {valgbare.length > 0 && <ButikkVelger valg={valgbare} />}
+        <ButikkVelger valg={valgbare} />
       </form>
 
       {igjen.length > 0 && (

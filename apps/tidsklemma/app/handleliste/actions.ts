@@ -18,10 +18,14 @@ async function husstanden() {
 /** «melk, 2 brød» → to varer, hver med anslått pris fra Oda. Er en butikk valgt, havner alle på den. */
 export async function leggTil(fd: FormData) {
   const varer = lesVarer(String(fd.get("tekst") ?? ""));
-  const butikk = String(fd.get("butikk") ?? "");
-  const iButikk = /^[A-Z0-9_]{2,40}$/.test(butikk) ? butikk : null;
+  // Kjedene lagres med koden (KIWI), egne butikker med navnet («Clas Ohlson»). En ny egen butikk huskes til neste gang.
+  const valgt = String(fd.get("butikk") ?? "").trim();
+  const ny = valgt === "__ny__" ? String(fd.get("ny_butikk") ?? "").replace(/\s+/g, " ").trim().slice(0, 40) : "";
+  const iButikk = ny || (valgt && valgt !== "__ny__" ? valgt.slice(0, 40) : null);
   if (varer.length === 0) redirect("/handleliste");
   const { db, hid } = await husstanden();
+  // Feiler stille hvis tabellen ikke er laget ennå: varen får butikken uansett.
+  if (ny) await db.from("butikker").upsert({ household_id: hid, navn: ny }, { onConflict: "household_id,navn", ignoreDuplicates: true });
   const funnet = await Promise.all(
     varer.map(async (v) => {
       // «12 egg» er som regel én pakning med 12, ikke 12 pakninger. Stemmer tallet med pakningen, blir det én.

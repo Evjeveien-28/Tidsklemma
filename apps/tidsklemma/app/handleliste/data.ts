@@ -63,3 +63,13 @@ export function produktTekst(p: { navn: string; ekstra: string }): string {
   const deler = p.ekstra.split(",").map((d) => d.trim()).filter((d) => d && !p.navn.toLowerCase().includes(d.toLowerCase()));
   return [p.navn, ...deler].join(", ");
 }
+
+/**
+ * Husstandens egne butikker (f.eks. «Clas Ohlson»), som bare finnes i Handleliste. Navnene lagres i
+ * handleliste.butikker. Butikker som står på en vare, er med selv om de ikke er lagret der (eller tabellen mangler).
+ */
+export async function hentEgneButikker(supabase: Klient, husstand: string, varer: Pick<Vare, "butikk">[], kjente: Set<string>): Promise<string[]> {
+  const { data } = await supabase.schema("handleliste").from("butikker").select("navn").eq("household_id", husstand);
+  const navn = [...((data ?? []) as { navn: string }[]).map((b) => b.navn), ...varer.map((v) => v.butikk).filter((b): b is string => !!b && !kjente.has(b))];
+  return [...new Set(navn)].sort((a, b) => a.localeCompare(b, "nb"));
+}
