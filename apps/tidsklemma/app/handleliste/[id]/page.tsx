@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { Bilde } from "../../middag/bilde";
-import { BUTIKKER } from "../../middag/butikker";
+import { BUTIKKER, butikkNavn } from "../../middag/butikker";
 import { Side } from "../../side";
 import { lagreVare, slettVare, velgProdukt } from "../actions";
-import { kr, VAREFELT, type Vare } from "../data";
+import { egneButikker, kr, VAREFELT, type Vare } from "../data";
 import { sokOda } from "../oda";
 
 export default async function VareSide({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ feil?: string }> }) {
@@ -20,6 +20,8 @@ export default async function VareSide({ params, searchParams }: { params: Promi
   ]);
   const vare = forslag.some((p) => p.id === v.produkt?.id) || !v.produkt ? forslag : [v.produkt, ...forslag];
   const valgbare = (inn?.butikker as string[] | undefined)?.length ? BUTIKKER.filter((b) => (inn!.butikker as string[]).includes(b.kode)) : BUTIKKER;
+  // Butikken varen står på, selv om den er skrevet inn som fritekst (f.eks. «Clas Ohlson») eller ikke er i listen over.
+  const egne = egneButikker([v], new Set(valgbare.map((b) => b.kode)));
 
   return (
     <Side tittel={v.navn} tilbake={{ href: "/handleliste", navn: "Handleliste" }}>
@@ -48,6 +50,11 @@ export default async function VareSide({ params, searchParams }: { params: Promi
                 if (!p) return null;
                 return p.pris != null ? ` · ${kr(p.pris)} kr${p.tilbud ? " (tilbud)" : p.anslag ? " (anslag)" : ""}` : " · ingen pris";
               })()}
+            </option>
+          ))}
+          {egne.map((n) => (
+            <option key={n} value={n}>
+              {butikkNavn(n)}
             </option>
           ))}
         </select>

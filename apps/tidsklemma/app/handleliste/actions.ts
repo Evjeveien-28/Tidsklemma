@@ -15,9 +15,13 @@ async function husstanden() {
   return { db: supabase.schema("handleliste"), hid: husstand.id };
 }
 
-/** «melk, 2 brød» → to varer, hver med anslått pris fra Oda. */
+/** «melk, 2 brød» → to varer, hver med anslått pris fra Oda. Er en butikk valgt, havner alle på den. */
 export async function leggTil(fd: FormData) {
   const varer = lesVarer(String(fd.get("tekst") ?? ""));
+  // Kjedene lagres med koden (KIWI), andre butikker med navnet slik det er skrevet («Clas Ohlson»).
+  const valgt = String(fd.get("butikk") ?? "").trim();
+  const ny = valgt === "__ny__" ? String(fd.get("ny_butikk") ?? "").replace(/\s+/g, " ").trim().slice(0, 40) : "";
+  const iButikk = ny || (valgt && valgt !== "__ny__" ? valgt.slice(0, 40) : null);
   if (varer.length === 0) redirect("/handleliste");
   const { db, hid } = await husstanden();
   const funnet = await Promise.all(
@@ -31,7 +35,7 @@ export async function leggTil(fd: FormData) {
       return { ...v, produkt: produkt ?? null };
     }),
   );
-  await db.from("varer").insert(funnet.map((v) => ({ household_id: hid, navn: v.navn, antall: v.antall, produkt: v.produkt })));
+  await db.from("varer").insert(funnet.map((v) => ({ household_id: hid, navn: v.navn, antall: v.antall, produkt: v.produkt, butikk: iButikk })));
   revalidatePath("/", "layout");
   redirect("/handleliste");
 }

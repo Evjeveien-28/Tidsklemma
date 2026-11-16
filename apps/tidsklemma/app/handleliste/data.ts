@@ -63,3 +63,12 @@ export function produktTekst(p: { navn: string; ekstra: string }): string {
   const deler = p.ekstra.split(",").map((d) => d.trim()).filter((d) => d && !p.navn.toLowerCase().includes(d.toLowerCase()));
   return [p.navn, ...deler].join(", ");
 }
+
+/**
+ * Butikker skrevet inn som fritekst (f.eks. «Clas Ohlson») som står på varer i listen nå. De lagres ikke andre
+ * steder, så de er bare med så lenge en vare står på dem.
+ */
+export function egneButikker(varer: Pick<Vare, "butikk">[], kjente: Set<string>): string[] {
+  const navn = varer.map((v) => v.butikk).filter((b): b is string => !!b && !kjente.has(b));
+  return [...new Set(navn)].sort((a, b) => a.localeCompare(b, "nb"));
+}
