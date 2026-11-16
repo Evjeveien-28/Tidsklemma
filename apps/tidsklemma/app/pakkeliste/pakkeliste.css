@@ -1,8 +1,3 @@
-.pk-turer { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.pk-tur { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-decoration: none; margin: 0; }
-.pk-tur b { display: block; font-size: 18px; }
-.pk-tur small { display: block; }
-.pk-status { text-align: right; flex: none; }
 .pk-prikker { display: flex; gap: 4px; margin-top: 6px; }
 .pk-prikker i, .pk-hode i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 .pk-beskrivelse { white-space: pre-line; }
@@ -20,3 +15,8 @@
 .pk-vaer li span:first-child { text-transform: capitalize; color: var(--dempet); }
 .pk-forslag { margin-top: 4px; }
 .pk-merknad { margin-top: 0; }
+.pk-alltid { display: block; margin-top: 12px; }
+.pk-alltid .pk-hode { font-weight: 600; margin-bottom: 4px; }
+.pk-alltid .felt { margin-top: 4px; }
+.pk-flis .pk-prikker { margin-top: 2px; }
+.pk-flis .pk-prikker i { box-shadow: 0 0 0 1.5px rgb(255 255 255 / 0.7); }

@@ -47,7 +47,7 @@ Endringer i databasen gjøres i nettleseren: lim inn hver fil i `supabase/migrat
 
 **Middag**: kjør `20261114000000_middag.sql` `20261116000000_middag_tilbud.sql` `20261118000000_middag_meny.sql` og `20261120000000_middag_agent.sql`, `20261121000000_middag_basisvarer.sql` `20261122000000_middag_sett.sql` `20261123000000_middag_kommende_tilbud.sql` `20261124000000_middag_grenser.sql` `20261125000000_middag_utfylling.sql` og `20261126000000_middag_laas.sql` (krever push-migrasjonen for hemmeligheten og jobben). Legg til schemaet `middag` under Exposed schemas og slå på `middag.innstillinger`, `middag.allergier`, `middag.oppskrifter`, `middag.tilbud`, `middag.bestillinger`, `middag.menyer` og `middag.sett` under Exposed tables. Ukens tilbud hentes hver natt fra eTilbudsavis/Tjek (`app/middag/tilbud-hent.ts`) via `/api/middag/tilbud`, og postnummeret slås opp hos Kartverket.
 
-**Pakkeliste**: kjør `20261128000000_pakkeliste.sql` og `20261129000000_pakkeliste_agent.sql`. Legg til schemaet `pakkeliste` under Exposed schemas og slå på `pakkeliste.turer` og `pakkeliste.ting` under Exposed tables.
+**Pakkeliste**: kjør `20261128000000_pakkeliste.sql` `20261129000000_pakkeliste_agent.sql` og `20261130000000_pakkeliste_innstillinger.sql`. Legg til schemaet `pakkeliste` under Exposed schemas og slå på `pakkeliste.turer`, `pakkeliste.ting`, `pakkeliste.innstillinger` og `pakkeliste.alltid` under Exposed tables.
 
 **Handleliste**: kjør `20261117000000_handleliste.sql`. Legg til schemaet `handleliste` under Exposed schemas og slå på `handleliste.varer` under Exposed tables.
 

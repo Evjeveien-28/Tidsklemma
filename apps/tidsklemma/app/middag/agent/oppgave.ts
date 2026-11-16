@@ -121,6 +121,8 @@ Skriv store JSON-kropper til en fil og send med \`-d @fil.json\`.
 ## Pakkelister
 Hver tur i \`pakkelister\` har:
 - \`tur\`: \`tittel\`, \`beskrivelse\` (med husstandens egne ord: hva de skal gjøre), \`sted\`, \`fra\` og \`til\`.
+- \`instruksjoner\`: husstandens egne ord om hvordan de reiser og hva du bør tenke på, f.eks. «Vi kjører alltid bil». Følg dem.
+- \`alltid\`: det som alltid skal med, per person og felles. Det står allerede på listen (se \`pa_listen\`), så ikke foreslå det igjen, men bruk det til å forstå hva familien er opptatt av.
 - \`personer\`: hvem som er med, med \`id\` og fødselsår. Regn ut alderen: små barn trenger bleier, smokk, kosedyr; tenåringer lader og egne ting.
 - \`vaer\`: stedet appen fant, og varselet per dag (\`min\`/\`maks\` °C, \`nedbor\` mm, \`vind\` m/s, \`beskrivelse\`). Er \`utenfor_varsel\` true, rekker ikke varselet hele turen: bruk det du vet om klimaet på stedet og årstiden. Er \`vaer\` null, fant appen ikke stedet.
 - \`pa_listen\`: det som allerede står på listen. Ikke foreslå det igjen. Det med \`"fjernet": true\` har husstanden fjernet fra denne turen: aldri foreslå det igjen.
