@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useOptimistic, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { SveipRad } from "../sveip-rad";
 import { fjernTing, settPakket } from "./actions";
 
 export type PakkRad = { id: string; navn: string; antall: number; pakket: boolean; agent: boolean };
@@ -11,7 +11,8 @@ export type Gruppe = { id: string; navn: string; farge: string | null; rader: Pa
 type Endring = { id: string; pakket?: boolean; fjernet?: boolean };
 
 /**
- * Pakkelisten, en gruppe per person og én felles. Trykk på en ting for å krysse den av som pakket.
+ * Pakkelisten, en gruppe per person og én felles. Trykk på en ting for å krysse den av som pakket,
+ * og dra den til venstre for å endre eller fjerne den (som i Handleliste).
  * Listen hentes på nytt jevnlig og når appen kommer i forgrunnen, så dere ser hva de andre har pakket.
  */
 export function PakkListe({ tur, grupper, laast }: { tur: string; grupper: Gruppe[]; laast: boolean }) {
@@ -26,6 +27,9 @@ export function PakkListe({ tur, grupper, laast }: { tur: string; grupper: Grupp
       return ny;
     },
   );
+
+  // Bare én rad kan stå åpen om gangen.
+  const [apen, setApen] = useState<string | null>(null);
 
   useEffect(() => {
     const oppdater = () => document.visibilityState === "visible" && router.refresh();
@@ -57,53 +61,40 @@ export function PakkListe({ tur, grupper, laast }: { tur: string; grupper: Grupp
               <p className="dempet liten">Ingenting ennå.</p>
             ) : (
               <ul className="hl-liste">
-                {rader.map((r) => {
-                  const pa = tilstand.get(r.id)?.pakket ?? r.pakket;
-                  return (
-                    <li key={r.id} className={pa ? "hl-rad pk-rad pa" : "hl-rad pk-rad"}>
-                      <button
-                        type="button"
-                        className="hl-trykk"
-                        role="checkbox"
-                        aria-checked={pa}
-                        onClick={() =>
-                          start(async () => {
-                            endre({ id: r.id, pakket: !pa });
-                            await settPakket(r.id, !pa);
-                          })
-                        }
-                      >
-                        <span className="hl-kryss" aria-hidden>
-                          {pa ? "✓" : ""}
-                        </span>
-                        <span className="hl-tekst">
-                          <b>
-                            {r.antall > 1 && `${r.antall} × `}
-                            {r.navn}
-                          </b>
-                        </span>
-                      </button>
-                      <Link href={`/pakkeliste/${tur}/ting/${r.id}`} className="pk-endre" aria-label={`Endre ${r.navn}`}>
-                        ✎
-                      </Link>
-                      {!laast && (
-                        <button
-                          type="button"
-                          className="pk-fjern"
-                          aria-label={`Fjern ${r.navn}`}
-                          onClick={() =>
+                {rader.map((r) => (
+                  <SveipRad
+                    key={r.id}
+                    navn={r.navn}
+                    pa={tilstand.get(r.id)?.pakket ?? r.pakket}
+                    apen={apen === r.id}
+                    settApen={(ja) => setApen(ja ? r.id : null)}
+                    redigerHref={`/pakkeliste/${tur}/ting/${r.id}`}
+                    kryss={(pa) =>
+                      start(async () => {
+                        endre({ id: r.id, pakket: pa });
+                        await settPakket(r.id, pa);
+                      })
+                    }
+                    // En låst liste skal være slik den er: ting kan endres, men ikke fjernes.
+                    fjern={
+                      laast
+                        ? undefined
+                        : () =>
                             start(async () => {
+                              setApen(null);
                               endre({ id: r.id, fjernet: true });
                               await fjernTing(r.id);
                             })
-                          }
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
+                    }
+                  >
+                    <span className="hl-tekst">
+                      <b>
+                        {r.antall > 1 && `${r.antall} × `}
+                        {r.navn}
+                      </b>
+                    </span>
+                  </SveipRad>
+                ))}
               </ul>
             )}
           </section>

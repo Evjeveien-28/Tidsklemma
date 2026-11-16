@@ -94,6 +94,8 @@ export async function settPakket(id: string, pa: boolean) {
     .from("ting")
     .update(pa ? { pakket_at: new Date().toISOString(), pakket_av: meg?.claims.sub ?? null } : { pakket_at: null, pakket_av: null })
     .eq("id", id);
+  // Ellers hopper haken tilbake når den optimistiske visningen slutter.
+  revalidatePath("/", "layout");
 }
 
 /** Fjern en ting. Den beholdes som fjernet, så agenten kan lære hva vi ikke vil ha med. */
@@ -101,6 +103,7 @@ export async function fjernTing(id: string) {
   if (!erId(id)) return;
   const { db } = await husstanden();
   await db.from("ting").update({ fjernet_at: new Date().toISOString() }).eq("id", id);
+  revalidatePath("/", "layout");
 }
 
 export async function endreTing(fd: FormData) {
