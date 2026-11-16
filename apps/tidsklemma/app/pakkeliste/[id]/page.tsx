@@ -3,17 +3,37 @@ import { notFound } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentPersoner } from "../../husstand/personer";
 import { Side } from "../../side";
-import { lasTur, leggTil, nullstillPakket } from "../actions";
+import { iDag } from "../../dato";
+import { agentKlar } from "../../middag/agent/start";
+import { Oppdater } from "../../middag/oppdater";
+import { bestillForslag, lasTur, leggTil, nullstillPakket } from "../actions";
+import { finnSted, hentVaer, symbolTekst, type Vaer } from "../vaer";
 import { hentTing, hentTur, netter, periode } from "../data";
 import { PakkListe, type Gruppe } from "../liste";
 
-export default async function TurSide({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+const ukedag = new Intl.DateTimeFormat("nb-NO", { weekday: "short", day: "numeric", timeZone: "UTC" });
+
+/** Været på stedet, når turen er innenfor varselet (ca. ti dager frem). Null ellers, eller hvis stedet ikke finnes. */
+async function vaerFor(sted: string, fra: string, til: string): Promise<Vaer | null> {
+  const idag = iDag();
+  const dagerTil = (Date.parse(`${fra}T12:00:00Z`) - Date.parse(`${idag}T12:00:00Z`)) / 86_400_000;
+  if (!sted || til < idag || dagerTil > 10) return null;
+  try {
+    const s = await finnSted(sted);
+    return s ? await hentVaer(s, fra < idag ? idag : fra, til) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function TurSide({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ feil?: string }> }) {
+  const [{ id }, { feil }] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const supabase = await createClient();
   const tur = await hentTur(supabase, id);
   if (!tur) notFound();
-  const [personer, ting] = await Promise.all([hentPersoner(supabase, tur.household_id), hentTing(supabase, id)]);
+  const [personer, ting, vaer] = await Promise.all([hentPersoner(supabase, tur.household_id), hentTing(supabase, id), vaerFor(tur.sted, tur.fra, tur.til)]);
+  const lager = tur.forslag_status === "venter" || tur.forslag_status === "jobber";
   const med = personer.filter((p) => tur.personer.includes(p.id));
   const laast = Boolean(tur.laast_at);
 
@@ -36,6 +56,62 @@ export default async function TurSide({ params }: { params: Promise<{ id: string
         {[periode(tur.fra, tur.til), netter(tur.fra, tur.til), tur.sted, laast && "Låst"].filter(Boolean).join(" · ")}
       </p>
       {tur.beskrivelse && <p className="pk-beskrivelse">{tur.beskrivelse}</p>}
+
+      {vaer && vaer.dager.length > 0 && (
+        <div className="kort pk-vaer">
+          <p className="kt">
+            Været på {vaer.sted.navn}
+            {vaer.sted.land !== "Norge" && `, ${vaer.sted.land}`}
+          </p>
+          <ul>
+            {vaer.dager.map((d) => (
+              <li key={d.dato}>
+                <span>{ukedag.format(new Date(`${d.dato}T12:00:00Z`))}</span>
+                <b>
+                  {d.min === d.maks ? d.maks : `${d.min} til ${d.maks}`} °C
+                </b>
+                <span className="dempet">{[symbolTekst(d.symbol), d.nedbor >= 1 && `${String(d.nedbor).replace(".", ",")} mm`].filter(Boolean).join(", ")}</span>
+              </li>
+            ))}
+          </ul>
+          <small className="dempet">Fra Meteorologisk institutt (yr).{vaer.utenforVarsel && " Varselet rekker ikke hele turen ennå."}</small>
+        </div>
+      )}
+
+      {feil === "mange" && <p className="feil">Dere har bedt om mange forslag det siste døgnet. Vent litt før dere prøver igjen.</p>}
+      {lager ? (
+        <div className="kort mplanlegges" role="status">
+          <Oppdater />
+          <p className="kt">Agenten lager forslag</p>
+          <p className="dempet liten">Den ser på turen, været og det dere har pakket før. Forslaget legges til listen om noen minutter.</p>
+        </div>
+      ) : (
+        !laast && (
+          <div className="kort pk-forslag">
+            {tur.forslag_merknad && (
+              <p className={tur.forslag_status === "feil" ? "feil" : "pk-merknad"}>
+                {tur.forslag_status === "feil" ? "Det gikk ikke å lage forslag: " : ""}
+                {tur.forslag_merknad}
+              </p>
+            )}
+            {agentKlar() ? (
+              <form action={bestillForslag}>
+                <input type="hidden" name="tur" value={id} />
+                <button type="submit" className={ting.length ? "sekundar" : "primar"}>
+                  {ting.length ? "Foreslå mer" : "Foreslå pakkeliste"}
+                </button>
+                <p className="dempet liten" style={{ margin: "6px 0 0" }}>
+                  {ting.length
+                    ? "Agenten legger til det som mangler. Det som står på listen, blir stående."
+                    : "Agenten lager en liste per person ut fra turen, været og det dere har pakket før."}
+                </p>
+              </form>
+            ) : (
+              <p className="dempet liten">Forslag fra agenten er ikke satt opp.</p>
+            )}
+          </div>
+        )
+      )}
       {ting.length > 0 && (
         <div className="pk-fremdrift" role="progressbar" aria-valuemin={0} aria-valuemax={ting.length} aria-valuenow={pakket} aria-label="Pakket">
           <span style={{ width: `${Math.round((pakket / ting.length) * 100)}%` }} />

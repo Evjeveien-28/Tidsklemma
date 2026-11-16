@@ -1,6 +1,8 @@
 import { oppgave } from "../../../../middag/agent/oppgave";
 import { hentSide, sidetekst } from "../../../../middag/les-oppskrift";
 import { hentTilbud } from "../../../../middag/tilbud-hent";
+import { finnSted, hentVaer, symbolTekst } from "../../../../pakkeliste/vaer";
+import { createClient } from "@hjem/db/server";
 import { agentDb, nektet } from "../nokkel";
 
 export const maxDuration = 60;
@@ -32,5 +34,26 @@ export async function POST(request: Request) {
 
   const { data, error } = await db.rpc("agent_hent", { nokkel });
   if (error) return nektet(error.message);
-  return Response.json({ oppgave: oppgave(new URL(request.url).origin), utfylling, bestillinger: data });
+
+  // Pakkelister som venter på forslag, med været på stedet. Agenten når ikke værtjenesten selv.
+  const supabase = await createClient();
+  const { data: turer } = await supabase.schema("pakkeliste").rpc("agent_hent", { nokkel });
+  const pakkelister = await Promise.all(
+    ((turer ?? []) as { tur: { tittel: string; sted: string; fra: string; til: string } }[]).map(async (t) => {
+      const sted = await finnSted(t.tur.sted || t.tur.tittel);
+      if (!sted) return { ...t, vaer: null };
+      const v = await hentVaer(sted, t.tur.fra, t.tur.til);
+      return {
+        ...t,
+        vaer: {
+          sted: `${sted.navn}, ${sted.land}`,
+          dager: v.dager.map((d) => ({ ...d, beskrivelse: symbolTekst(d.symbol) })),
+          // Turen er lenger frem enn varselet: agenten må bruke det den vet om klimaet på stedet.
+          utenfor_varsel: v.utenforVarsel,
+        },
+      };
+    }),
+  );
+
+  return Response.json({ oppgave: oppgave(new URL(request.url).origin), utfylling, bestillinger: data, pakkelister });
 }

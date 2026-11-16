@@ -13,6 +13,9 @@ export type Tur = {
   personer: string[];
   laast_at: string | null;
   created_at: string;
+  forslag_status: "venter" | "jobber" | "ferdig" | "feil" | null;
+  forslag_bestilt_at: string | null;
+  forslag_merknad: string | null;
 };
 
 export type Ting = {
@@ -27,7 +30,7 @@ export type Ting = {
   created_at: string;
 };
 
-const TURFELT = "id, household_id, tittel, beskrivelse, sted, fra, til, personer, laast_at, created_at";
+const TURFELT = "id, household_id, tittel, beskrivelse, sted, fra, til, personer, laast_at, created_at, forslag_status, forslag_bestilt_at, forslag_merknad";
 const TINGFELT = "id, tur_id, person_id, navn, antall, kilde, pakket_at, fjernet_at, created_at";
 
 export async function hentTurer(supabase: Klient, husstand: string): Promise<Tur[]> {
