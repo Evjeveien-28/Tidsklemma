@@ -82,5 +82,17 @@ export async function hentLister(supabase: Klient, husstand: string): Promise<Eg
   return data as EgenListe[];
 }
 
-/** Adressen til en liste. */
-export const listeSti = (liste: string | null | undefined) => (liste ? `/handleliste?liste=${liste}` : "/handleliste");
+/** Adressen til en liste: /handleliste/liste/mat for matlisten, ellers med listens id. */
+export const listeSti = (liste: string | null | undefined) => `/handleliste/liste/${liste ?? "mat"}`;
+
+/** Det som ikke er krysset av, på alle listene, til flisene i oversikten. */
+export async function hentIgjen(supabase: Klient, husstand: string): Promise<Pick<Vare, "liste_id" | "produkt" | "uten_pris" | "antall" | "butikk">[]> {
+  const { data, error } = await supabase
+    .schema("handleliste")
+    .from("varer")
+    .select("liste_id, produkt, uten_pris, antall, butikk")
+    .eq("household_id", husstand)
+    .is("avkrysset_at", null);
+  if (error) throw new Error(error.message);
+  return (data as Pick<Vare, "liste_id" | "produkt" | "uten_pris" | "antall" | "butikk">[]).map((v) => ({ ...v, antall: Number(v.antall) }));
+}

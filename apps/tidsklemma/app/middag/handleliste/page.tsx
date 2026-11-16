@@ -204,14 +204,14 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
         <SendKnapp sendt={Boolean(sendt) && !utdatert} oppdater={utdatert} />
         <p className="dempet liten" style={{ textAlign: "center", margin: 0 }}>
           {utdatert ? (
-            <>Menyen er laget på nytt etter at den ble sendt. Trykk for å oppdatere <Link href="/handleliste">Handleliste</Link>. Det du har kjøpt, blir stående.</>
+            <>Menyen er laget på nytt etter at den ble sendt. Trykk for å oppdatere <Link href="/handleliste/liste/mat">Handleliste</Link>. Det du har kjøpt, blir stående.</>
           ) : sendt ? (
             <>
-              Sendt til <Link href="/handleliste">Handleliste</Link>. Bytter du rett eller butikk, oppdateres den der også. Det du har kjøpt, blir stående.
+              Sendt til <Link href="/handleliste/liste/mat">Handleliste</Link>. Bytter du rett eller butikk, oppdateres den der også. Det du har kjøpt, blir stående.
             </>
           ) : (
             <>
-              Varene legges i <Link href="/handleliste">Handleliste</Link>, med butikk. Bytter du rett etterpå, oppdateres listen der også.
+              Varene legges i <Link href="/handleliste/liste/mat">Handleliste</Link>, med butikk. Bytter du rett etterpå, oppdateres listen der også.
             </>
           )}
         </p>

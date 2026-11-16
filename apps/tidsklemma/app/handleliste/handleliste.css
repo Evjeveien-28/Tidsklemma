@@ -1,28 +1,39 @@
 /* Handleliste */
-/* Listene som faner. Den nye-liste-boksen legger seg på en egen linje under. */
-.hl-faner { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
-.hl-fane {
-  display: inline-block;
-  padding: 6px 14px;
-  border: 2px solid var(--brun);
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--brun);
-  background: var(--felt);
-  cursor: pointer;
-}
-.hl-fane.valgt { background: var(--brun); color: var(--krem); }
-.hl-fane.apen { background: var(--krem-mork); }
-.hl-ny-liste-skjema { flex: 1 0 100%; display: flex; gap: 10px; align-items: center; }
-.hl-ny-liste-skjema .felt { flex: 1; margin: 0; min-width: 0; }
-.hl-ny-liste-skjema button { margin: 0; width: auto; }
+/* Oversikten: én flis per liste, og «Ny handleliste» */
+.hl-flis-ny { border-style: dashed; background: transparent; cursor: pointer; font: inherit; text-align: left; width: 100%; }
+.hl-dialog { border: 2px solid var(--brun); border-radius: 16px; background: var(--krem); color: var(--valnott); padding: 20px; width: min(90vw, 360px); }
+.hl-dialog::backdrop { background: rgb(74 46 28 / 0.4); }
+.hl-dialog form { display: flex; flex-direction: column; gap: 12px; }
+.hl-dialog .felt { margin: 0; }
+.hl-dialog .knapperad { display: flex; flex-wrap: nowrap; gap: 16px; justify-content: flex-end; align-items: center; margin: 0; }
+.hl-dialog .knapperad > * { width: auto; flex: none; margin: 0; }
+
+/* Tittelen på en liste, med blyant for å endre navnet */
+.hl-blyant { background: none; border: 0; color: var(--dempet); font-size: 22px; cursor: pointer; padding: 4px 8px; }
+.hl-endre-navn { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+.hl-endre-navn .felt { flex: 1; margin: 0; min-width: 0; font-size: 20px; font-weight: 600; }
+.hl-endre-navn .sekundar, .hl-endre-navn .lenke { margin: 0; width: auto; flex: none; }
+
 .hl-slett-liste { margin-top: 24px; text-align: center; }
 .hl-slett-liste summary { cursor: pointer; list-style: none; }
-.hl-ny { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
-.hl-ny .felt { flex: 1; margin: 0; min-width: 0; }
-.hl-ny .pluss { flex: none; border: 0; }
+
+/* Legg til: tekstfeltet, butikken under, og «+» under begge */
+.hl-ny { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.hl-ny .felt { margin: 0; }
+.hl-ny select.felt { padding-top: 10px; padding-bottom: 10px; }
+.hl-legg-til {
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brun);
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  box-shadow: 0 4px 0 #3e2412;
+  cursor: pointer;
+}
+.hl-legg-til:active { transform: translateY(3px); box-shadow: none; }
+.hl-legg-til:disabled { opacity: 0.7; }
 .hl-sum { margin: 10px 0 6px; font-size: 17px; }
 .hl-gruppe { margin-top: 16px; }
 .hl-liste { list-style: none; margin: 0; padding: 0; }
@@ -77,5 +88,3 @@
   padding: 2px 4px;
   max-width: 100%;
 }
-.hl-ny-butikk { flex: 1 0 100%; display: flex; gap: 10px; align-items: center; font-size: 15px; }
-.hl-ny-butikk .felt { flex: 1; margin: 0; min-width: 0; padding-top: 8px; padding-bottom: 8px; }

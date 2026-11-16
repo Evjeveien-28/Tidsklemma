@@ -398,7 +398,7 @@ export async function sendTilHandleliste(fd: FormData) {
   const { supabase, hid } = await husstanden();
   const { error } = await synkHandleliste(supabase, hid, uke);
   revalidatePath("/", "layout");
-  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste");
+  redirect(error ? `/middag/handleliste?uke=${uke}&feil=send` : "/handleliste/liste/mat");
 }
 
 /** Er middagsvarene for uka sendt til Handleliste? Da holdes de oppdatert når menyen endres. */
