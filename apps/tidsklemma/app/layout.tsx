@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
+import { DraForOppdatering } from "./dra-for-oppdatering";
 import "./globals.css";
 
 const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-barlow" });
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="nb" className={`${barlow.variable} ${barlowCondensed.variable}`}>
       <body>
+        <DraForOppdatering />
         <div className="app">{children}</div>
       </body>
     </html>
