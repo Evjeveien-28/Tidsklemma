@@ -45,7 +45,15 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   // Med flere butikker grupperes varene per butikk, i rekkefølgen husstanden har rangert dem.
   const rader = innkjop.map((i) => {
     const butikk = aktiv.plassering[i.id] ?? valgt[0]!;
-    return { i, butikk, p: prisHos(i, butikk) };
+    const p = prisHos(i, butikk);
+    // Hvor mye billigere varen er her enn i den billigste av de andre valgte butikkene.
+    const alternativ = valgt
+      .filter((b) => b !== butikk)
+      .map((b) => ({ b, pris: prisHos(i, b).pris }))
+      .filter((x): x is { b: string; pris: number } => x.pris != null)
+      .sort((x, y) => x.pris - y.pris)[0];
+    const spart = p.pris != null && alternativ && alternativ.pris - p.pris >= 1 ? { kr: alternativ.pris - p.pris, mot: alternativ.b } : null;
+    return { i, butikk, p, spart };
   });
   const grupper = (valgt.length > 1 ? valgt : [null]).map((b) => {
     const varer = b ? rader.filter((r) => r.butikk === b) : rader;
@@ -120,12 +128,17 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
             </p>
           )}
           <ul className="hl-liste">
-            {g.varer.map(({ i, butikk, p }) => (
+            {g.varer.map(({ i, butikk, p, spart }) => (
               <li key={i.id} className="hl-rad">
                 <span className="hl-tekst" style={{ paddingLeft: 2 }}>
                   <b>{i.navn}</b>
                   {i.bruk && <small>{i.bruk}</small>}
                   {p.tilbud && <small className="hl-tilbud">Tilbud hos {butikkNavn(butikk)}</small>}
+                  {spart && (
+                    <small className="hl-spart">
+                      −{kroner.format(spart.kr)} kr mot {butikkNavn(spart.mot)}
+                    </small>
+                  )}
                 </span>
                 <span className="hl-pris">
                   {p.pris != null ? kr(p.pris) : "–"}
