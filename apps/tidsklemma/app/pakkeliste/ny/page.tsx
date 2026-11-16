@@ -14,6 +14,9 @@ export default async function NyTur({ searchParams }: { searchParams: Promise<{ 
     <Side tittel="Ny tur" tilbake={{ href: "/pakkeliste", navn: "Pakkeliste" }}>
       {feil && <p className="feil">{feil === "dato" ? "Velg når turen starter." : "Det gikk ikke å lagre. Prøv igjen."}</p>}
       <TurSkjema personer={personer} handling={nyTur} knapp="Lag pakkeliste" />
+      <p className="dempet liten" style={{ textAlign: "center" }}>
+        Det som alltid skal med, kommer på listen med en gang. Agenten foreslår resten om noen minutter.
+      </p>
     </Side>
   );
 }

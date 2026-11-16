@@ -31,7 +31,7 @@ så send den med en plassholder:
 - \`lagre\` med \`{"bestilling_id": "…", "meny": {…}}\`: lagrer menyen. Får du \`detaljer\` med feil tilbake, rett dem og send på nytt.
 - \`feil\` med \`{"bestilling_id": "…", "melding": "…"}\`: bruk bare hvis du ikke kan lage en meny. Meldingen vises til husstanden, så skriv hva de kan gjøre.
 - \`oppskrift\` med \`{"id": "…", "ingredienser": ["400 g kjøttdeig", …], "minutter": 30, "porsjoner": 4, "fremgangsmaate": "…"}\`: lagrer en oppskrift du har fylt inn.
-- \`pakkeliste\` med \`{"tur_id": "…", "ting": [{"person_id": "…" eller null, "navn": "…", "antall": 1}], "merknad": "…"}\`: lagrer forslaget til en pakkeliste.
+- \`pakkeliste\` med \`{"tur_id": "…", "ting": [{"person_id": "…" eller null, "navn": "…", "antall": 1}], "fjern": ["…"], "merknad": "…"}\`: lagrer forslaget til en pakkeliste. \`fjern\` er valgfri: id-ene til dine egne forslag som ikke passer lenger.
 - \`pakkeliste/feil\` med \`{"tur_id": "…", "melding": "…"}\`: bruk bare hvis du ikke kan lage forslaget.
 
 ## Fyll inn oppskrifter
@@ -125,7 +125,8 @@ Hver tur i \`pakkelister\` har:
 - \`alltid\`: det som alltid skal med, per person og felles. Det står allerede på listen (se \`pa_listen\`), så ikke foreslå det igjen, men bruk det til å forstå hva familien er opptatt av.
 - \`personer\`: hvem som er med, med \`id\` og fødselsår. Regn ut alderen: små barn trenger bleier, smokk, kosedyr; tenåringer lader og egne ting.
 - \`vaer\`: stedet appen fant, og varselet per dag (\`min\`/\`maks\` °C, \`nedbor\` mm, \`vind\` m/s, \`beskrivelse\`). Er \`utenfor_varsel\` true, rekker ikke varselet hele turen: bruk det du vet om klimaet på stedet og årstiden. Er \`vaer\` null, fant appen ikke stedet.
-- \`pa_listen\`: det som allerede står på listen. Ikke foreslå det igjen. Det med \`"fjernet": true\` har husstanden fjernet fra denne turen: aldri foreslå det igjen.
+- \`pa_listen\`: det som allerede står på listen, med \`id\`, \`kilde\` (\`agent\`: du foreslo det, \`manuell\`: husstanden la det til eller endret det, \`alltid\`: fra «alltid med») og om det er \`pakket\`. Ikke foreslå det igjen. Det med \`"fjernet": true\` har husstanden fjernet fra denne turen: aldri foreslå det igjen.
+- **Ny runde**: står det allerede ting fra deg (\`kilde\`: \`agent\`) på listen, er turen endret siden sist (f.eks. ny beskrivelse, andre datoer, flere personer). Les turen på nytt, legg til det som mangler, og send \`id\` på dine egne forslag som ikke passer lenger i \`fjern\`. Det husstanden har lagt til eller endret (\`manuell\`), det som alltid er med (\`alltid\`), og det som er pakket, blir alltid stående.
 - \`tidligere\`: låste pakkelister fra tidligere turer, slik familien vil ha det. Finn de som ligner (samme sted, samme årstid, samme type tur) og bygg på dem. Bruk navnene på personene for å vite hvem tingen var til.
 - \`fjernet_for\`: ting du har foreslått på andre turer, som husstanden fjernet. Ikke foreslå dem uten en god grunn i denne turen.
 
