@@ -38,6 +38,18 @@ export async function nyListe(fd: FormData) {
   redirect(listeSti(data?.id as string | undefined));
 }
 
+/** Gi en egen liste nytt navn. Matlisten heter alltid «Mat». */
+export async function endreListenavn(fd: FormData) {
+  const liste = listeFra(fd);
+  const navn = String(fd.get("navn") ?? "").replace(/\s+/g, " ").trim().slice(0, 40);
+  if (liste && navn) {
+    const { db } = await husstanden();
+    await db.from("lister").update({ navn }).eq("id", liste);
+  }
+  revalidatePath("/", "layout");
+  redirect(listeSti(liste));
+}
+
 /** Slett en egen liste med alle varene på den. Matlisten kan ikke slettes. */
 export async function slettListe(fd: FormData) {
   const liste = listeFra(fd);

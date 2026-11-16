@@ -6,10 +6,10 @@ import { useFormStatus } from "react-dom";
 const NY = "__ny__";
 
 /**
- * Butikken nye varer havner på. «Annen butikk …» gir et fritekstfelt, f.eks. «Clas Ohlson» (bare i Handleliste).
- * Går tilbake til «Uspesifisert» når varene er lagt til.
+ * Butikken nye varer havner på. Med `fritekst` gir «Annen butikk …» et felt for en hvilken som helst butikk,
+ * f.eks. «Clas Ohlson». Går tilbake til «Uspesifisert butikk» når varene er lagt til.
  */
-export function ButikkVelger({ valg }: { valg: { kode: string; navn: string }[] }) {
+export function ButikkVelger({ valg, fritekst }: { valg: { kode: string; navn: string }[]; fritekst: boolean }) {
   const { pending } = useFormStatus();
   const [butikk, setButikk] = useState("");
   const [ny, setNy] = useState("");
@@ -28,22 +28,25 @@ export function ButikkVelger({ valg }: { valg: { kode: string; navn: string }[] 
 
   return (
     <>
-      <label className="hl-ny-butikk">
-        <span className="dempet">Butikk</span>
-        <select name="butikk" value={butikk} onChange={(e) => setButikk(e.target.value)} className="felt">
-          <option value="">Uspesifisert</option>
-          {valg.map((b) => (
-            <option key={b.kode} value={b.kode}>
-              {b.navn}
-            </option>
-          ))}
-          <option value={NY}>Annen butikk …</option>
-        </select>
+      <label className="visuelt-skjult" htmlFor="butikk">
+        Butikk
       </label>
+      <select id="butikk" name="butikk" value={butikk} onChange={(e) => setButikk(e.target.value)} className="felt">
+        <option value="">Uspesifisert butikk</option>
+        {valg.map((b) => (
+          <option key={b.kode} value={b.kode}>
+            {b.navn}
+          </option>
+        ))}
+        {fritekst && <option value={NY}>Annen butikk …</option>}
+      </select>
       {butikk === NY && (
-        <label className="hl-ny-butikk">
-          <span className="visuelt-skjult">Navn på butikken</span>
+        <>
+          <label className="visuelt-skjult" htmlFor="ny_butikk">
+            Navn på butikken
+          </label>
           <input
+            id="ny_butikk"
             ref={nyFelt}
             name="ny_butikk"
             value={ny}
@@ -54,7 +57,7 @@ export function ButikkVelger({ valg }: { valg: { kode: string; navn: string }[] 
             placeholder="F.eks. Clas Ohlson"
             className="felt"
           />
-        </label>
+        </>
       )}
     </>
   );
