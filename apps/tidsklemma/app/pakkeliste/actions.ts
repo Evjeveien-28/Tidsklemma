@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentPersoner } from "../husstand/personer";
 import { hentHusstand } from "../planter/data";
+import { startAgent } from "../middag/agent/start";
 
 async function husstanden() {
   const supabase = await createClient();
@@ -137,5 +139,31 @@ export async function nullstillPakket(fd: FormData) {
   const { db } = await husstanden();
   await db.from("ting").update({ pakket_at: null, pakket_av: null }).eq("tur_id", id);
   revalidatePath(`/pakkeliste/${id}`);
+  redirect(`/pakkeliste/${id}`);
+}
+
+/**
+ * Be agenten om forslag til pakkelisten. Den legger til ting, og lar det som står der i fred.
+ * Hver kjøring bruker av Claude-kvoten: ikke en ny mens en er i gang, og høyst ti i døgnet per husstand.
+ */
+export async function bestillForslag(fd: FormData) {
+  const id = String(fd.get("tur") ?? "");
+  if (!erId(id)) redirect("/pakkeliste");
+  const { db, hid } = await husstanden();
+  const { data: turer } = await db
+    .from("turer")
+    .select("id, forslag_status, forslag_bestilt_at")
+    .eq("household_id", hid)
+    .gte("forslag_bestilt_at", new Date(Date.now() - 86_400_000).toISOString());
+  const denne = (turer ?? []).find((t) => t.id === id);
+  const pagar = denne && (denne.forslag_status === "venter" || denne.forslag_status === "jobber") && Date.parse(denne.forslag_bestilt_at) > Date.now() - 15 * 60_000;
+  if (pagar) redirect(`/pakkeliste/${id}`);
+  if ((turer ?? []).length >= 10) redirect(`/pakkeliste/${id}?feil=mange`);
+  const { error } = await db
+    .from("turer")
+    .update({ forslag_status: "venter", forslag_bestilt_at: new Date().toISOString(), forslag_merknad: null })
+    .eq("id", id);
+  if (!error) after(startAgent);
+  revalidatePath("/", "layout");
   redirect(`/pakkeliste/${id}`);
 }

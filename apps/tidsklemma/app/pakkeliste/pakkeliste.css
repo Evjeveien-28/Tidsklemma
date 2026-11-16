@@ -14,3 +14,9 @@
 .pk-hode .dempet { margin-left: auto; letter-spacing: 0; }
 .pk-legg-til, .pk-laas { margin-top: 18px; }
 .pk-laas .dempet { margin: 4px 0 10px; }
+.pk-vaer ul { list-style: none; margin: 4px 0 6px; padding: 0; }
+.pk-vaer li { display: grid; grid-template-columns: 64px auto 1fr; gap: 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px dashed #d9c9b0; }
+.pk-vaer li:last-child { border-bottom: 0; }
+.pk-vaer li span:first-child { text-transform: capitalize; color: var(--dempet); }
+.pk-forslag { margin-top: 4px; }
+.pk-merknad { margin-top: 0; }
