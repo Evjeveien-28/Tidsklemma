@@ -384,7 +384,8 @@ fieldset.kort legend { padding: 0 4px; }
 /* Dra ned for å oppdatere (bare når appen er på hjemskjermen) */
 .dra-oppdater {
   position: fixed;
-  top: env(safe-area-inset-top, 0px);
+  /* Godt under statuslinjen og kamerahullet, også på telefoner der siden går helt opp. */
+  top: calc(env(safe-area-inset-top, 0px) + 28px);
   left: 50%;
   z-index: 50;
   width: 40px;
