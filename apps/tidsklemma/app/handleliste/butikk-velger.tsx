@@ -6,8 +6,8 @@ import { useFormStatus } from "react-dom";
 const NY = "__ny__";
 
 /**
- * Butikken nye varer havner på. «Ny butikk …» gir et felt for en egen butikk, f.eks. «Clas Ohlson», som huskes
- * til neste gang (bare i Handleliste). Går tilbake til «Uspesifisert» når varene er lagt til.
+ * Butikken nye varer havner på. «Annen butikk …» gir et fritekstfelt, f.eks. «Clas Ohlson» (bare i Handleliste).
+ * Går tilbake til «Uspesifisert» når varene er lagt til.
  */
 export function ButikkVelger({ valg }: { valg: { kode: string; navn: string }[] }) {
   const { pending } = useFormStatus();
@@ -37,7 +37,7 @@ export function ButikkVelger({ valg }: { valg: { kode: string; navn: string }[] 
               {b.navn}
             </option>
           ))}
-          <option value={NY}>Ny butikk …</option>
+          <option value={NY}>Annen butikk …</option>
         </select>
       </label>
       {butikk === NY && (

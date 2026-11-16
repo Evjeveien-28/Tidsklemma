@@ -4,7 +4,7 @@ import { BUTIKKER, butikkNavn } from "../middag/butikker";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
 import { fjernAvkryssede, leggTil } from "./actions";
-import { anslag, finnTilbud, hentEgneButikker, hentVarer, kr, produktTekst, type Vare } from "./data";
+import { anslag, finnTilbud, egneButikker, hentVarer, kr, produktTekst, type Vare } from "./data";
 import { ButikkVelger } from "./butikk-velger";
 import { LeggTilKnapp } from "./legg-til-knapp";
 import { Liste, type Rad } from "./liste";
@@ -75,8 +75,8 @@ export default async function Handleliste() {
   const rekkefolge = ((inn?.butikker as string[] | undefined) ?? []);
   // Butikkene man kan velge når man legger til: husstandens fra Middag, ellers alle.
   const kjeder = rekkefolge.length ? rekkefolge.map((k) => ({ kode: k, navn: butikkNavn(k) })) : BUTIKKER.map((b) => ({ kode: b.kode, navn: b.navn }));
-  // Pluss egne butikker, f.eks. «Clas Ohlson». Der er navnet også koden.
-  const egne = await hentEgneButikker(supabase, husstand.id, varer, new Set(BUTIKKER.map((b) => b.kode)));
+  // Pluss butikker skrevet inn som fritekst på varer i listen nå, f.eks. «Clas Ohlson». Der er navnet også koden.
+  const egne = egneButikker(varer, new Set(BUTIKKER.map((b) => b.kode)));
   const valgbare = [...kjeder, ...egne.filter((n) => !kjeder.some((k) => k.kode === n)).map((n) => ({ kode: n, navn: n }))];
 
   const igjen = varer.filter((v) => !v.avkrysset_at);
