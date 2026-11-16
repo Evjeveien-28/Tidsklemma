@@ -10,6 +10,16 @@ export type Produkt = {
   bilde: string | null;
   /** Odas egne tilbud, f.eks. «Kjøp 3, få 5 %». */
   tilbud: string | null;
+  /** Bare på varer fra Middag: prisen i hver av husstandens butikker, så varen kan flyttes og sammenlignes. */
+  middag?: MiddagPriser;
+};
+
+export type MiddagPriser = {
+  /** Innkjøpets id i ukesmenyen, så en flytting kan lagres der også. */
+  innkjop: string;
+  priser: Record<string, { pris: number | null; tilbud: boolean; anslag: boolean }>;
+  /** Butikkene handelen er fordelt på. Prisforskjellen vises mot de andre av disse. */
+  fordeling: string[];
 };
 
 type OdaProdukt = {

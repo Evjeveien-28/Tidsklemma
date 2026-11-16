@@ -361,11 +361,29 @@ export async function settHjemme(fd: FormData) {
   redirect(`/middag/handleliste?uke=${uke}`);
 }
 
+/** Fra Handleliste: en middagsvare er flyttet til en annen butikk. Lagres i ukesmenyen, så den holder seg. */
+export async function flyttFraHandleliste(uke: string, innkjop: string, butikk: string) {
+  if (!erDato(uke) || !innkjop || !/^[A-Z0-9_]{2,40}$/.test(butikk)) return;
+  await endreValg(uke, (v) => ({ ...v, flytt: { ...v.flytt, [innkjop]: butikk } }));
+}
+
+/** Kjøp én vare i en annen butikk enn appen foreslo. */
+export async function flyttVare(fd: FormData) {
+  const uke = String(fd.get("uke") ?? "");
+  const id = String(fd.get("innkjop") ?? "");
+  const butikk = String(fd.get("butikk") ?? "");
+  if (!erDato(uke)) redirect("/middag");
+  if (!/^[A-Z0-9_]{2,40}$/.test(butikk) || !id) redirect(`/middag/handleliste?uke=${uke}`);
+  await endreValg(uke, (v) => ({ ...v, flytt: { ...v.flytt, [id]: butikk } }));
+  redirect(`/middag/handleliste?uke=${uke}`);
+}
+
 export async function velgFordeling(fd: FormData) {
   const uke = String(fd.get("uke") ?? "");
   const butikker = String(fd.get("butikker") ?? "").split(",").filter(Boolean).slice(0, 3);
   if (!erDato(uke)) redirect("/middag");
-  await endreValg(uke, (v) => ({ ...v, fordeling: butikker }));
+  // Ny fordeling: varene fordeles på nytt, så flyttede varer starter fra scratch.
+  await endreValg(uke, (v) => ({ ...v, fordeling: butikker, flytt: {} }));
   redirect(`/middag/handleliste?uke=${uke}`);
 }
 
@@ -405,19 +423,24 @@ async function synkHandleliste(supabase: Klient, hid: string, uke: string): Prom
   if (!meny) return { error: "ingen meny" };
   const inn = await hentInnstillinger(supabase, hid);
   const { innkjop } = await ukensInnkjop(supabase, meny, inn.basisvarer);
-  const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
+  const { aktiv } = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling, meny.valg.flytt);
   const fordeling = aktiv?.butikker ?? inn.butikker.slice(0, 1);
   const plassering = aktiv?.plassering ?? {};
 
   const rader: Record<string, unknown>[] = innkjop.map((i) => {
     const butikk = plassering[i.id] ?? fordeling[0]!;
     const p = prisHos(i, butikk);
+    const middag = {
+      innkjop: i.id,
+      priser: Object.fromEntries(inn.butikker.map((b) => [b, prisHos(i, b)])),
+      fordeling: aktiv?.butikker ?? fordeling,
+    };
     return {
       household_id: hid,
       navn: i.navn.slice(0, 120),
       antall: 1,
       butikk,
-      produkt: p.pris != null ? { id: 0, navn: i.priser[butikk]?.vare ?? i.navn, ekstra: i.bruk ?? "", pris: p.pris, kilopris: null, enhet: null, bilde: null, tilbud: p.tilbud ? "Tilbud" : null } : null,
+      produkt: p.pris != null ? { id: 0, navn: i.priser[butikk]?.vare ?? i.navn, ekstra: i.bruk ?? "", pris: p.pris, kilopris: null, enhet: null, bilde: null, tilbud: p.tilbud ? "Tilbud" : null, middag } : null,
       kilde: "middag",
       kilde_uke: uke,
     };

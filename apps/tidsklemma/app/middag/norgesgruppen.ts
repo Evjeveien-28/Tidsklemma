@@ -10,7 +10,7 @@ export const NG_KJEDER: Record<string, number> = { MENY_NO: 1300, SPAR_NO: 1210,
 export type NgProdukt = {
   navn: string;
   ean: string | null;
-  /** Pris for én vare (pakning), eller per kg/l hvis `enhet` er det. */
+  /** Pris for én pakning, eller per kg når `enhet` er «kg» (løsvekt). */
   pris: number;
   enhet: string | null;
   sammenligningspris: number | null;
@@ -28,6 +28,9 @@ type NgKilde = {
   unit?: string;
   comparePricePerUnit?: number;
   compareUnit?: string;
+  /** «kg» for løsvekt og ferskvaredisk: da er `pricePerUnit` prisen for en bit på `unitWeight` kg, ikke for en kilo. */
+  calcUnit?: string;
+  unitWeight?: number;
   isOffer?: boolean;
   isForSale?: boolean;
 };
@@ -50,15 +53,32 @@ export async function sokNorgesgruppen(butikk: string, sok: string, antall = 4):
       .map((h) => h._source)
       .filter((p) => p.isForSale !== false && Number(p.pricePerUnit) > 0)
       .slice(0, antall)
-      .map((p) => ({
-        navn: [p.title, p.subtitle].filter(Boolean).join(" "),
-        ean: p.ean ?? null,
-        pris: Number(p.pricePerUnit),
-        enhet: p.unit ?? null,
-        sammenligningspris: p.comparePricePerUnit ?? null,
-        sammenligningsenhet: p.compareUnit ?? null,
-        tilbud: p.isOffer && p.pricePerUnitOriginal && p.pricePerUnitOriginal > Number(p.pricePerUnit) ? { forpris: p.pricePerUnitOriginal } : null,
-      }));
+      .map((p) => {
+        const navn = [p.title, p.subtitle].filter(Boolean).join(" ");
+        const tilbud = p.isOffer && p.pricePerUnitOriginal && p.pricePerUnitOriginal > Number(p.pricePerUnit) ? { forpris: p.pricePerUnitOriginal } : null;
+        // Løsvekt: oppgi kiloprisen, ellers ser en bit på 140 g ut som en billig kilo.
+        if (p.calcUnit === "kg" && p.comparePricePerUnit) {
+          const faktor = p.comparePricePerUnit / Number(p.pricePerUnit);
+          return {
+            navn: `${navn} (løsvekt, pris per kg)`,
+            ean: p.ean ?? null,
+            pris: p.comparePricePerUnit,
+            enhet: "kg",
+            sammenligningspris: p.comparePricePerUnit,
+            sammenligningsenhet: "kg",
+            tilbud: tilbud && { forpris: Math.round(tilbud.forpris * faktor * 100) / 100 },
+          };
+        }
+        return {
+          navn,
+          ean: p.ean ?? null,
+          pris: Number(p.pricePerUnit),
+          enhet: p.unit ?? null,
+          sammenligningspris: p.comparePricePerUnit ?? null,
+          sammenligningsenhet: p.compareUnit ?? null,
+          tilbud,
+        };
+      });
   } catch {
     return [];
   }

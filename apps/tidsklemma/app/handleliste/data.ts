@@ -29,8 +29,12 @@ export async function hentVarer(supabase: Klient, husstand: string): Promise<Var
 }
 
 /** Anslått pris for varen, eller null når den ikke har pris. */
-export function anslag(v: Pick<Vare, "produkt" | "uten_pris" | "antall">): number | null {
-  return v.uten_pris || !v.produkt ? null : Math.round(v.produkt.pris * v.antall * 100) / 100;
+export function anslag(v: Pick<Vare, "produkt" | "uten_pris" | "antall"> & { butikk?: string | null }): number | null {
+  if (v.uten_pris || !v.produkt) return null;
+  // Varer fra Middag har pris per butikk: bruk prisen i butikken varen står på (den kan være flyttet).
+  const iButikk = v.butikk ? v.produkt.middag?.priser[v.butikk] : undefined;
+  const pris = iButikk ? iButikk.pris : v.produkt.pris;
+  return pris == null ? null : Math.round(pris * v.antall * 100) / 100;
 }
 
 const kroner = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });

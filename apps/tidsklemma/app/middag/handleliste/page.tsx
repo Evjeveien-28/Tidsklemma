@@ -8,6 +8,7 @@ import { butikkNavn } from "../butikker";
 import { hentInnstillinger, hentMeny } from "../data";
 import { ukensInnkjop } from "../egne";
 import { prisHos, prisoversikt, summer } from "../pris";
+import { FlyttVelger } from "./flytt-velger";
 import { SendKnapp } from "./send-knapp";
 
 const kroner = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
@@ -38,7 +39,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   const utdatert = Boolean(sendt) && Boolean(sist?.[0]) && meny.laget_at > String(sist![0]!.created_at);
 
   const { innkjop, hjemme } = await ukensInnkjop(supabase, meny, inn.basisvarer);
-  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling);
+  const oversikt = prisoversikt(innkjop, inn.butikker, inn.maks_butikker, meny.valg.fordeling, meny.valg.flytt);
   const aktiv = oversikt.aktiv ?? summer(innkjop, inn.butikker.slice(0, 1));
   const valgt = aktiv.butikker;
   const nokkel = (b: string[]) => b.join(",");
@@ -46,14 +47,16 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   const rader = innkjop.map((i) => {
     const butikk = aktiv.plassering[i.id] ?? valgt[0]!;
     const p = prisHos(i, butikk);
-    // Hvor mye billigere varen er her enn i den billigste av de andre valgte butikkene.
+    // Forskjellen mot den billigste av de andre butikkene i fordelingen: positiv er spart, negativ er dyrere (flyttet vare).
     const alternativ = valgt
       .filter((b) => b !== butikk)
       .map((b) => ({ b, pris: prisHos(i, b).pris }))
       .filter((x): x is { b: string; pris: number } => x.pris != null)
       .sort((x, y) => x.pris - y.pris)[0];
-    const spart = p.pris != null && alternativ && alternativ.pris - p.pris >= 1 ? { kr: alternativ.pris - p.pris, mot: alternativ.b } : null;
-    return { i, butikk, p, spart };
+    const spart = p.pris != null && alternativ && Math.abs(alternativ.pris - p.pris) >= 1 ? { kr: alternativ.pris - p.pris, mot: alternativ.b } : null;
+    // Prisen i hver av husstandens butikker, til velgeren for å flytte varen.
+    const valg = inn.butikker.map((b) => ({ kode: b, navn: butikkNavn(b), ...prisHos(i, b) }));
+    return { i, butikk, p, spart, valg };
   });
   const grupper = (valgt.length > 1 ? valgt : [null]).map((b) => {
     const varer = b ? rader.filter((r) => r.butikk === b) : rader;
@@ -84,7 +87,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
               : null;
             return (
               <label key={nokkel(s.butikker)} className="radio mvalg">
-                <input type="radio" name="butikker" value={nokkel(s.butikker)} defaultChecked={nokkel(s.butikker) === nokkel(valgt)} />
+                <input type="radio" name="butikker" value={nokkel(s.butikker)} defaultChecked={nokkel(s.butikker) === nokkel(oversikt.valgt?.butikker ?? valgt)} />
                 <span>
                   <b>{fordelt ? s.butikker.map(butikkNavn).join(" + ") : `Alt hos ${butikkNavn(s.butikker[0]!)}`}</b>
                   <small className="dempet">
@@ -128,17 +131,19 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
             </p>
           )}
           <ul className="hl-liste">
-            {g.varer.map(({ i, butikk, p, spart }) => (
+            {g.varer.map(({ i, butikk, p, spart, valg }) => (
               <li key={i.id} className="hl-rad">
                 <span className="hl-tekst" style={{ paddingLeft: 2 }}>
                   <b>{i.navn}</b>
                   {i.bruk && <small>{i.bruk}</small>}
                   {p.tilbud && <small className="hl-tilbud">Tilbud hos {butikkNavn(butikk)}</small>}
                   {spart && (
-                    <small className="hl-spart">
-                      −{kroner.format(spart.kr)} kr mot {butikkNavn(spart.mot)}
+                    <small className={spart.kr > 0 ? "hl-spart" : undefined}>
+                      {spart.kr > 0 ? "−" : "+"}
+                      {kroner.format(Math.abs(spart.kr))} kr mot {butikkNavn(spart.mot)}
                     </small>
                   )}
+                  {valg.length > 1 && <FlyttVelger uke={uke} innkjop={i.id} butikk={butikk} valg={valg} flyttet={Boolean(meny.valg.flytt?.[i.id])} />}
                 </span>
                 <span className="hl-pris">
                   {p.pris != null ? kr(p.pris) : "–"}

@@ -10,8 +10,28 @@ import { Liste, type Rad } from "./liste";
 
 const tilbake = { href: "/", navn: "Tilbake" };
 
+const kroner = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 0 });
+
+/** For varer fra Middag: merke ved prisen, og forskjellen mot den billigste av de andre butikkene i fordelingen. */
+function middagInfo(v: Vare): Pick<Rad, "merke" | "forskjell"> {
+  const m = v.produkt?.middag;
+  const her = m && v.butikk ? m.priser[v.butikk] : undefined;
+  if (!m || !her || her.pris == null) return { merke: null, forskjell: null };
+  const andre = m.fordeling
+    .filter((b) => b !== v.butikk)
+    .map((b) => ({ b, pris: m.priser[b]?.pris }))
+    .filter((x): x is { b: string; pris: number } => x.pris != null)
+    .sort((a, b) => a.pris - b.pris)[0];
+  const diff = andre ? (andre.pris - her.pris) * v.antall : 0;
+  return {
+    merke: her.tilbud ? "tilbud" : her.anslag ? "anslag" : null,
+    forskjell: andre && Math.abs(diff) >= 1 ? { tekst: `${diff > 0 ? "−" : "+"}${kroner.format(Math.abs(diff))} kr mot ${butikkNavn(andre.b)}`, bra: diff > 0 } : null,
+  };
+}
+
 function tilRad(v: Vare, tilbud: Parameters<typeof finnTilbud>[1]): Rad {
   const pris = anslag(v);
+  const her = v.butikk ? v.produkt?.middag?.priser[v.butikk] : undefined;
   // Fra middagsmenyen med butikk: butikken og prisen er alt valgt der, så ikke foreslå tilbud andre steder.
   const fraMeny = v.kilde === "middag" && v.produkt?.id === 0;
   const t = fraMeny && v.butikk ? null : finnTilbud(v.navn, tilbud);
@@ -21,12 +41,13 @@ function tilRad(v: Vare, tilbud: Parameters<typeof finnTilbud>[1]): Rad {
     under: v.uten_pris
       ? null
       : fraMeny
-        ? [v.produkt!.ekstra, v.produkt!.tilbud && v.butikk && `Tilbud hos ${butikkNavn(v.butikk)}`].filter(Boolean).join(" · ") || null
+        ? [v.produkt!.ekstra, (her ? her.tilbud : v.produkt!.tilbud) && v.butikk && `Tilbud hos ${butikkNavn(v.butikk)}`].filter(Boolean).join(" · ") || null
         : v.produkt
           ? `${produktTekst(v.produkt)}${v.produkt.tilbud ? ` · Oda: ${v.produkt.tilbud}` : ""}`
           : "Fant ikke pris",
     tilbud: t ? `Tilbud hos ${butikkNavn(t.butikk)}: ${t.navn.charAt(0) + t.navn.slice(1).toLowerCase()}, ${kr(t.pris)}` : null,
-    pris: pris != null ? `ca. ${kr(pris)}` : null,
+    pris: pris != null ? (v.produkt?.middag ? kr(pris) : `ca. ${kr(pris)}`) : null,
+    ...middagInfo(v),
     avkrysset: v.avkrysset_at != null,
   };
 }
@@ -110,7 +131,14 @@ export default async function Handleliste() {
         </details>
       )}
       <p className="dempet liten" style={{ marginTop: "auto", paddingTop: 20, textAlign: "center" }}>
-        Prisene er anslag fra Oda. I lavpriskjedene er det ofte litt billigere.
+        {varer.some((v) => v.produkt?.middag) ? (
+          <>
+            Varer fra Middag: <span className="pmerke tilbud">%</span> tilbud, <span className="pmerke anslag">≈</span> anslått med Odas pris. Trykk på en
+            vare for å flytte den til en annen butikk.
+            <br />
+          </>
+        ) : null}
+        Andre priser er anslag fra Oda. I lavpriskjedene er det ofte litt billigere.
       </p>
     </Side>
   );

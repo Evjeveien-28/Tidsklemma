@@ -11,6 +11,10 @@ export type Rad = {
   under: string | null;
   tilbud: string | null;
   pris: string | null;
+  /** Merke ved prisen: % for tilbud, ≈ for anslått med Odas pris (varer fra Middag). */
+  merke: "tilbud" | "anslag" | null;
+  /** «−12 kr mot Kiwi»: hva varen sparer (bra) eller koster ekstra mot de andre butikkene i fordelingen. */
+  forskjell: { tekst: string; bra: boolean } | null;
   avkrysset: boolean;
 };
 
@@ -58,8 +62,18 @@ export function Liste({ grupper }: { grupper: { navn: string | null; rader: Rad[
                     <b>{r.tittel}</b>
                     {r.under && <small>{r.under}</small>}
                     {r.tilbud && <small className="hl-tilbud">{r.tilbud}</small>}
+                    {r.forskjell && <small className={r.forskjell.bra ? "hl-spart" : undefined}>{r.forskjell.tekst}</small>}
                   </Link>
-                  {r.pris && <span className="hl-pris">{r.pris}</span>}
+                  {r.pris && (
+                    <span className="hl-pris">
+                      {r.pris}
+                      {r.merke && (
+                        <span className={`pmerke ${r.merke}`} title={r.merke === "tilbud" ? "Tilbud" : "Anslått med Odas pris"}>
+                          {r.merke === "tilbud" ? "%" : "≈"}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </li>
               );
             })}
