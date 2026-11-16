@@ -1,11 +1,13 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { DatabaseFeil } from "../database-feil";
 import { BUTIKKER, butikkNavn } from "../middag/butikker";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
-import { fjernAvkryssede, leggTil } from "./actions";
-import { anslag, finnTilbud, egneButikker, hentVarer, kr, produktTekst, type Vare } from "./data";
+import { fjernAvkryssede, leggTil, slettListe } from "./actions";
+import { anslag, finnTilbud, egneButikker, hentLister, hentVarer, type EgenListe, kr, produktTekst, type Vare } from "./data";
 import { ButikkVelger } from "./butikk-velger";
+import { Faner } from "./faner";
 import { LeggTilKnapp } from "./legg-til-knapp";
 import { Liste, type Rad } from "./liste";
 
@@ -53,28 +55,41 @@ function tilRad(v: Vare, tilbud: Parameters<typeof finnTilbud>[1]): Rad {
   };
 }
 
-export default async function Handleliste() {
+export default async function Handleliste({ searchParams }: { searchParams: Promise<{ liste?: string; ny?: string }> }) {
+  const { liste: listeParam, ny } = await searchParams;
   const supabase = await createClient();
   const husstand = await hentHusstand(supabase);
   if (!husstand) return <Side tittel="Handleliste" tilbake={tilbake}><p>Du er ikke medlem av en husstand ennå.</p></Side>;
 
+  // Matlisten (uten liste-id) er standard og finnes alltid. Det er dit Middag sender varene.
+  let lister: EgenListe[];
   let varer: Vare[];
   try {
-    varer = await hentVarer(supabase, husstand.id);
+    lister = await hentLister(supabase, husstand.id);
+    varer = await hentVarer(supabase, husstand.id, lister.find((l) => l.id === listeParam)?.id ?? null);
   } catch (e) {
     return (
       <Side tittel="Handleliste" tilbake={tilbake}>
-        <DatabaseFeil melding={e instanceof Error ? e.message : String(e)} hva="handlelisten" schema="handleliste" tabeller="handleliste.varer" />
+        <DatabaseFeil melding={e instanceof Error ? e.message : String(e)} hva="handlelisten" schema="handleliste" tabeller="handleliste.varer, handleliste.lister" />
       </Side>
     );
   }
-  // Ukens tilbud fra Middag, hvis den delen er satt opp.
-  const { data: tilbud } = await supabase.schema("middag").from("tilbud").select("butikk, navn, pris, gyldig_til").eq("household_id", husstand.id);
+  const liste = lister.find((l) => l.id === listeParam) ?? null;
+  // En liste som er slettet (eller en gammel lenke): vis matlisten.
+  if (listeParam && !liste) redirect("/handleliste");
+  const mat = !liste;
+
+  // Ukens tilbud og butikker fra Middag gjelder bare matlisten.
+  const [{ data: tilbud }, { data: inn }] = mat
+    ? await Promise.all([
+        supabase.schema("middag").from("tilbud").select("butikk, navn, pris, gyldig_til").eq("household_id", husstand.id),
+        supabase.schema("middag").from("innstillinger").select("butikker").eq("household_id", husstand.id).maybeSingle(),
+      ])
+    : [{ data: null }, { data: null }];
   const ukensTilbud = ((tilbud ?? []) as { butikk: string; navn: string; pris: number; gyldig_til: string }[]).map((t) => ({ ...t, pris: Number(t.pris) }));
-  const { data: inn } = await supabase.schema("middag").from("innstillinger").select("butikker").eq("household_id", husstand.id).maybeSingle();
   const rekkefolge = ((inn?.butikker as string[] | undefined) ?? []);
-  // Butikkene man kan velge når man legger til: husstandens fra Middag, ellers alle.
-  const kjeder = rekkefolge.length ? rekkefolge.map((k) => ({ kode: k, navn: butikkNavn(k) })) : BUTIKKER.map((b) => ({ kode: b.kode, navn: b.navn }));
+  // Butikkene man kan velge når man legger til: på matlisten husstandens fra Middag, ellers alle kjedene.
+  const kjeder = !mat ? [] : rekkefolge.length ? rekkefolge.map((k) => ({ kode: k, navn: butikkNavn(k) })) : BUTIKKER.map((b) => ({ kode: b.kode, navn: b.navn }));
   // Pluss butikker skrevet inn som fritekst på varer i listen nå, f.eks. «Clas Ohlson». Der er navnet også koden.
   const egne = egneButikker(varer, new Set(BUTIKKER.map((b) => b.kode)));
   const valgbare = [...kjeder, ...egne.filter((n) => !kjeder.some((k) => k.kode === n)).map((n) => ({ kode: n, navn: n }))];
@@ -96,11 +111,14 @@ export default async function Handleliste() {
 
   return (
     <Side tittel="Handleliste" tilbake={tilbake}>
+      <Faner lister={lister} valgt={liste?.id ?? null} visNy={ny === "1"} />
+
       <form action={leggTil} className="hl-ny">
+        {liste && <input type="hidden" name="liste" value={liste.id} />}
         <label htmlFor="tekst" className="visuelt-skjult">
           Legg til varer
         </label>
-        <input id="tekst" name="tekst" required maxLength={500} autoComplete="off" placeholder="F.eks. melk, 2 brød, oppvaskmiddel" className="felt" />
+        <input id="tekst" name="tekst" required maxLength={500} autoComplete="off" placeholder={mat ? "F.eks. melk, 2 brød, oppvaskmiddel" : "Skriv inn det dere trenger"} className="felt" />
         <LeggTilKnapp />
         <ButikkVelger valg={valgbare} />
       </form>
@@ -118,7 +136,7 @@ export default async function Handleliste() {
       {igjen.length === 0 && kurven.length === 0 ? (
         <div className="kort stiplet">
           <p className="kt">Tom liste</p>
-          <p>Skriv inn det dere trenger. Flere varer på én gang med komma. Prisen anslås fra Oda.</p>
+          <p>Skriv inn det dere trenger. Flere varer på én gang med komma.{mat && " Prisen anslås fra Oda."}</p>
         </div>
       ) : igjen.length === 0 ? (
         <p className="dempet">Alt er krysset av.</p>
@@ -131,12 +149,25 @@ export default async function Handleliste() {
           <summary className="kt">I handlekurven ({kurven.length})</summary>
           <Liste grupper={[{ navn: null, rader: kurven.map((v) => tilRad(v, ukensTilbud)) }]} />
           <form action={fjernAvkryssede}>
+            {liste && <input type="hidden" name="liste" value={liste.id} />}
             <button type="submit" className="lenke">
               Fjern avkryssede
             </button>
           </form>
         </details>
       )}
+      {liste && (
+        <details className="hl-slett-liste">
+          <summary className="lenke dempet">Slett listen «{liste.navn}»</summary>
+          <form action={slettListe}>
+            <input type="hidden" name="liste" value={liste.id} />
+            <button type="submit" className="lenke feil">
+              Ja, slett listen og alle varene på den
+            </button>
+          </form>
+        </details>
+      )}
+      {mat && (
       <p className="dempet liten" style={{ marginTop: "auto", paddingTop: 20, textAlign: "center" }}>
         {varer.some((v) => v.produkt?.middag) ? (
           <>
@@ -147,6 +178,7 @@ export default async function Handleliste() {
         ) : null}
         Andre priser er anslag fra Oda. I lavpriskjedene er det ofte litt billigere.
       </p>
+      )}
     </Side>
   );
 }
