@@ -14,4 +14,5 @@ export const deler: {
   { slug: "handleliste", navn: "Handle\nliste", beskrivelse: "Felles liste", ikon: "handleliste", farge: "brun" },
   { slug: "familiekalender", navn: "Familie\nkalender", beskrivelse: "Hvem skal hvor", ikon: "kalender", farge: "blaa" },
   { slug: "planter", navn: "Planter", beskrivelse: "Vanning", ikon: "plante", farge: "gronn" },
+  { slug: "pakkeliste", navn: "Pakke\nliste", beskrivelse: "Til turen", ikon: "koffert", farge: "blaa" },
 ];

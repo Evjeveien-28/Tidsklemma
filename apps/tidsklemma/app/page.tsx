@@ -3,6 +3,8 @@ import { createClient } from "@hjem/db/server";
 import { kalenderStatus } from "./familiekalender/status";
 import { anslag, hentVarer as hentHandleliste, kr } from "./handleliste/data";
 import { middagStatus } from "./middag/status";
+import { pakkelisteStatus } from "./pakkeliste/data";
+import { iDag } from "./dato";
 import { hentPlanter } from "./planter/data";
 import { deler } from "../deler";
 import { Ikon } from "./ikoner";
@@ -40,6 +42,8 @@ export default async function Hjem() {
     }
     const middag = await middagStatus(supabase, husstand.id).catch(() => null);
     if (middag) status.middag = middag;
+    const pakkeliste = await pakkelisteStatus(supabase, husstand.id, iDag()).catch(() => null);
+    if (pakkeliste) status.pakkeliste = pakkeliste;
     const [planter, kalender] = await Promise.all([
       hentPlanter(supabase, husstand.id).catch(() => null),
       kalenderStatus(supabase, husstand.id).catch(() => null),
