@@ -13,7 +13,7 @@ import { valgteRetter } from "./meny";
 import { prisoversikt } from "./pris";
 import { Oppdater } from "./oppdater";
 import { merkSett } from "./status";
-import { dagTekst, mandagI, middagsdager, standardUke, ukeTekst } from "./uke";
+import { dagTekst, mandagI, middagsdager, standardUke, ukeNr, ukeTekst } from "./uke";
 
 const tilbake = { href: "/", navn: "Tilbake" };
 const tid = new Intl.DateTimeFormat("nb-NO", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Oslo" });
@@ -283,7 +283,7 @@ export default async function Middag({ searchParams }: { searchParams: Promise<{
 
       {!venter && igjen && !meny?.valg.laast && (
         <Link href={`/middag/planlegg?uke=${uke}`} className={meny ? "sekundar mlag" : "primar"}>
-          {meny ? "Lag ny meny" : "Lag meny"}
+          {meny ? "Lag ny meny" : "Lag meny"} for {ukeNr(uke).toLowerCase()}
         </Link>
       )}
 
