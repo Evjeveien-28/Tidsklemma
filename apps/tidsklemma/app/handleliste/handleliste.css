@@ -19,3 +19,18 @@
 .hl-valg { list-style: none; margin: 0 0 12px; padding: 0; }
 .hl-valg label { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px dashed #d9c9b0; cursor: pointer; }
 .hl-valg input { width: 20px; height: 20px; accent-color: var(--avokado); flex: none; }
+.hl-pris .pmerke { margin-left: 5px; }
+.pmerke {
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
+}
+.pmerke.tilbud { background: #4c5a24; color: var(--krem); }
+.pmerke.anslag { border: 1.5px solid var(--dempet); color: var(--dempet); }
+.pforklaring { margin-top: 10px; }

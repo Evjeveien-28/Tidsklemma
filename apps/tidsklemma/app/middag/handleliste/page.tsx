@@ -42,6 +42,15 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
   const aktiv = oversikt.aktiv ?? summer(innkjop, inn.butikker.slice(0, 1));
   const valgt = aktiv.butikker;
   const nokkel = (b: string[]) => b.join(",");
+  // Med flere butikker grupperes varene per butikk, i rekkefølgen husstanden har rangert dem.
+  const rader = innkjop.map((i) => {
+    const butikk = aktiv.plassering[i.id] ?? valgt[0]!;
+    return { i, butikk, p: prisHos(i, butikk) };
+  });
+  const grupper = (valgt.length > 1 ? valgt : [null]).map((b) => {
+    const varer = b ? rader.filter((r) => r.butikk === b) : rader;
+    return { butikk: b, varer, sum: varer.reduce((s, r) => s + (r.p.pris ?? 0), 0) };
+  }).filter((g) => g.varer.length > 0);
 
   return (
     <Side tittel="Handleliste for uka" tilbake={{ href: `/middag?uke=${uke}`, navn: "Middag" }}>
@@ -103,32 +112,50 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
 
       {feil && <p className="feil">Det gikk ikke å sende til handlelisten. Prøv igjen.</p>}
 
-      <ul className="hl-liste">
-        {innkjop.map((i) => {
-          const butikk = aktiv.plassering[i.id] ?? valgt[0]!;
-          const p = prisHos(i, butikk);
-          return (
-            <li key={i.id} className="hl-rad">
-              <span className="hl-tekst" style={{ paddingLeft: 2 }}>
-                <b>{i.navn}</b>
-                <small>
-                  {[valgt.length > 1 && butikkNavn(butikk), i.bruk].filter(Boolean).join(" · ")}
-                </small>
-                {p.tilbud && <small className="hl-tilbud">Tilbud hos {butikkNavn(butikk)}</small>}
-              </span>
-              <span className="hl-pris" title={p.anslag ? "Anslått med Odas pris" : undefined}>{p.pris != null ? `ca. ${kr(p.pris)}` : "–"}</span>
-              <form action={settHjemme}>
-                <input type="hidden" name="uke" value={uke} />
-                <input type="hidden" name="innkjop" value={i.id} />
-                <input type="hidden" name="pa" value="1" />
-                <button type="submit" className="liten-pil" aria-label={`Har ${i.navn} hjemme`} title="Har hjemme">
-                  ✕
-                </button>
-              </form>
-            </li>
-          );
-        })}
-      </ul>
+      {grupper.map((g) => (
+        <section key={g.butikk ?? "alle"}>
+          {g.butikk && (
+            <p className="kt hl-gruppe">
+              {butikkNavn(g.butikk)} <span className="dempet">· ca. {kroner.format(g.sum)} kr</span>
+            </p>
+          )}
+          <ul className="hl-liste">
+            {g.varer.map(({ i, butikk, p }) => (
+              <li key={i.id} className="hl-rad">
+                <span className="hl-tekst" style={{ paddingLeft: 2 }}>
+                  <b>{i.navn}</b>
+                  {i.bruk && <small>{i.bruk}</small>}
+                  {p.tilbud && <small className="hl-tilbud">Tilbud hos {butikkNavn(butikk)}</small>}
+                </span>
+                <span className="hl-pris">
+                  {p.pris != null ? kr(p.pris) : "–"}
+                  {p.pris != null && (p.tilbud || p.anslag) && (
+                    <span className={p.tilbud ? "pmerke tilbud" : "pmerke anslag"} title={p.tilbud ? "Tilbud" : "Anslått med Odas pris"}>
+                      {p.tilbud ? "%" : "≈"}
+                    </span>
+                  )}
+                </span>
+                <form action={settHjemme}>
+                  <input type="hidden" name="uke" value={uke} />
+                  <input type="hidden" name="innkjop" value={i.id} />
+                  <input type="hidden" name="pa" value="1" />
+                  <button type="submit" className="liten-pil" aria-label={`Har ${i.navn} hjemme`} title="Har hjemme">
+                    ✕
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {innkjop.some((i) => {
+        const p = prisHos(i, aktiv.plassering[i.id] ?? valgt[0]!);
+        return p.pris != null && (p.tilbud || p.anslag);
+      }) && (
+        <p className="dempet liten pforklaring">
+          <span className="pmerke tilbud">%</span> tilbud · <span className="pmerke anslag">≈</span> anslått med Odas pris, kan være dyrere i butikken
+        </p>
+      )}
       {hjemme.length > 0 && (
         // Åpen når agenten har lagt inn rester fra forrige uke, så de blir sett og kan rettes.
         <details className="hl-kurv" open={hjemme.some((i) => i.rest && !(meny.valg.har ?? []).includes(i.id))}>
