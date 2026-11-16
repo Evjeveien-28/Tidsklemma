@@ -74,6 +74,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
                     ca. {kroner.format(s.sum)} kr
                     {s.tilbud > 0 && ` · ${s.tilbud} på tilbud`}
                     {s.mangler > 0 && ` · ${s.mangler} uten pris`}
+                    {s.anslag > 0 && ` · ${s.anslag === innkjop.length - s.mangler ? "alle" : s.anslag} anslått`}
                   </small>
                   {hvor && <small className="dempet">{hvor}</small>}
                 </span>
@@ -93,7 +94,8 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
           </button>
         </form>
         <p className="dempet liten">
-          Tilbudspriser er fra kundeavisene. Andre varer har anslått vanlig pris fra Oda, så summene er omtrentlige. Forskjeller
+          Tilbudspriser er fra kundeavisene. Meny, Spar, Joker og Oda har vanlige priser fra nettbutikkene. Kiwi, Rema og Coop har
+          ikke priser på nett, så der er varene uten tilbud anslått med Odas pris, og summen kan være for lav. Forskjeller
           under ca. 10 kr regnes som like, og da velges butikkene dere har rangert høyest.
           {inn.maks_butikker > 1 && !oversikt.fordelt && " Det blir ikke billigere av å fordele handelen denne uka."}
         </p>
@@ -114,7 +116,7 @@ export default async function MiddagHandleliste({ searchParams }: { searchParams
                 </small>
                 {p.tilbud && <small className="hl-tilbud">Tilbud hos {butikkNavn(butikk)}</small>}
               </span>
-              <span className="hl-pris">{p.pris != null ? `ca. ${kr(p.pris)}` : "–"}</span>
+              <span className="hl-pris" title={p.anslag ? "Anslått med Odas pris" : undefined}>{p.pris != null ? `ca. ${kr(p.pris)}` : "–"}</span>
               <form action={settHjemme}>
                 <input type="hidden" name="uke" value={uke} />
                 <input type="hidden" name="innkjop" value={i.id} />
