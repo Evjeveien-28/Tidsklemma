@@ -10,13 +10,15 @@ export async function kalenderStatus(supabase: Klient, husstand: string) {
   const klokka = naa();
   const [avtaler, varsler] = await Promise.all([hentAvtaler(supabase, husstand, idag, leggTilDager(idag, 30)), hentVarsler(supabase, idag)]);
   let tekst = "Ingenting planlagt";
+  let personer: string[] = [];
   for (const dato of dager(idag, 31)) {
     const neste = forekomsterPaDag(avtaler, dato).find((f) => dato !== idag || !erOver(f, klokka));
     if (neste) {
       const dag = dato <= leggTilDager(idag, 6) ? relativDag(dato, idag) : dagTekst(dato);
       tekst = `${dag}${neste.fra ? ` ${neste.fra}` : ""}: ${neste.avtale.tittel}`;
+      personer = neste.avtale.personer;
       break;
     }
   }
-  return { antall: varsler.length, tekst };
+  return { antall: varsler.length, tekst, personer };
 }
