@@ -12,7 +12,7 @@ export const deler: {
 }[] = [
   { slug: "middag", navn: "Middag", beskrivelse: "Oppskrifter og ukesmeny", ikon: "middag", farge: "krem" },
   { slug: "handleliste", navn: "Handle\nliste", beskrivelse: "Felles liste", ikon: "handleliste", farge: "brun" },
+  { slug: "pakkeliste", navn: "Pakke\nliste", beskrivelse: "Til turen", ikon: "koffert", farge: "blaa" },
   { slug: "familiekalender", navn: "Familie\nkalender", beskrivelse: "Hvem skal hvor", ikon: "kalender", farge: "blaa" },
   { slug: "planter", navn: "Planter", beskrivelse: "Vanning", ikon: "plante", farge: "gronn" },
-  { slug: "pakkeliste", navn: "Pakke\nliste", beskrivelse: "Til turen", ikon: "koffert", farge: "blaa" },
 ];
