@@ -112,3 +112,21 @@ const SYMBOL: [RegExp, string][] = [
 export function symbolTekst(symbol: string): string {
   return SYMBOL.find(([r]) => r.test(symbol))?.[1] ?? "";
 }
+
+/**
+ * Stedet ut fra teksten om turen, når «Hvor» står tomt: «Hytta på Hafjell» → Hafjell.
+ * Ord med stor forbokstav etter «på», «i», «til» osv. prøves først, så andre ord med stor forbokstav som ikke starter en setning.
+ * `unnta` er navn som ikke er steder (personene i husstanden).
+ */
+export async function finnStedITekst(tekst: string, unnta: string[] = []): Promise<Sted | null> {
+  const ord = "[A-ZÆØÅ][a-zæøåéü-]+(?:\\s+[A-ZÆØÅ][a-zæøåéü-]+)?";
+  const etterPreposisjon = [...tekst.matchAll(new RegExp(`\\b(?:på|i|til|ved|hos|mot|fra|over)\\s+(${ord})`, "g"))].map((m) => m[1]!);
+  const andre = [...tekst.matchAll(new RegExp(`(?<![.!?]\\s|^)(?<=\\s)(${ord})`, "g"))].map((m) => m[1]!);
+  const nei = new Set(unnta.map((n) => n.toLowerCase()));
+  const kandidater = [...new Set([...etterPreposisjon, ...andre])].filter((k) => !nei.has(k.toLowerCase().split(/\s+/)[0]!)).slice(0, 4);
+  for (const k of kandidater) {
+    const sted = await finnSted(k);
+    if (sted) return sted;
+  }
+  return null;
+}

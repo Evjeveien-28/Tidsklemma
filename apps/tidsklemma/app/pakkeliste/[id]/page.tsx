@@ -4,7 +4,6 @@ import { createClient } from "@hjem/db/server";
 import { hentPersoner } from "../../husstand/personer";
 import { Side } from "../../side";
 import { iDag } from "../../dato";
-import { agentKlar } from "../../middag/agent/start";
 import { Oppdater } from "../../middag/oppdater";
 import { bestillForslag, lasTur, leggTil, nullstillPakket } from "../actions";
 import { finnSted, hentVaer, symbolTekst, type Vaer } from "../vaer";
@@ -83,35 +82,27 @@ export default async function TurSide({ params, searchParams }: { params: Promis
         <div className="kort mplanlegges" role="status">
           <Oppdater />
           <p className="kt">Agenten lager forslag</p>
-          <p className="dempet liten">Den ser på turen, været og det dere har pakket før. Forslaget legges til listen om noen minutter.</p>
+          <p className="dempet liten">Den ser på turen, været og det dere har pakket før. Det dere har lagt til selv, blir stående.</p>
         </div>
       ) : (
-        !laast && (
+        tur.forslag_merknad && (
           <div className="kort pk-forslag">
-            {tur.forslag_merknad && (
-              <p className={tur.forslag_status === "feil" ? "feil" : "pk-merknad"}>
-                {tur.forslag_status === "feil" ? "Det gikk ikke å lage forslag: " : ""}
-                {tur.forslag_merknad}
-              </p>
-            )}
-            {agentKlar() ? (
-              <form action={bestillForslag}>
+            <p className={tur.forslag_status === "feil" ? "feil" : "pk-merknad"} style={{ margin: 0 }}>
+              {tur.forslag_status === "feil" ? "Det gikk ikke å lage forslag: " : ""}
+              {tur.forslag_merknad}
+            </p>
+            {tur.forslag_status === "feil" && !laast && (
+              <form action={bestillForslag} style={{ marginTop: 8 }}>
                 <input type="hidden" name="tur" value={id} />
-                <button type="submit" className={ting.length ? "sekundar" : "primar"}>
-                  {ting.length ? "Foreslå mer" : "Foreslå pakkeliste"}
+                <button type="submit" className="inline-knapp">
+                  Prøv igjen
                 </button>
-                <p className="dempet liten" style={{ margin: "6px 0 0" }}>
-                  {ting.length
-                    ? "Agenten legger til det som mangler. Det som står på listen, blir stående."
-                    : "Agenten lager en liste per person ut fra turen, været og det dere har pakket før."}
-                </p>
               </form>
-            ) : (
-              <p className="dempet liten">Forslag fra agenten er ikke satt opp.</p>
             )}
           </div>
         )
       )}
+
       {ting.length > 0 && (
         <div className="pk-fremdrift" role="progressbar" aria-valuemin={0} aria-valuemax={ting.length} aria-valuenow={pakket} aria-label="Pakket">
           <span style={{ width: `${Math.round((pakket / ting.length) * 100)}%` }} />

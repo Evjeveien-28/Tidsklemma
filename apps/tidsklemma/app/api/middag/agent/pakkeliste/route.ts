@@ -4,7 +4,7 @@ import { nektet } from "../nokkel";
 /** Agentens forslag til en pakkeliste. Nye ting legges til listen. Det som allerede står der, hoppes over. */
 export async function POST(request: Request) {
   const nokkel = request.headers.get("x-agent-key") ?? "";
-  const b = (await request.json().catch(() => null)) as { tur_id?: unknown; ting?: unknown; merknad?: unknown } | null;
+  const b = (await request.json().catch(() => null)) as { tur_id?: unknown; ting?: unknown; merknad?: unknown; fjern?: unknown } | null;
   if (typeof b?.tur_id !== "string" || !Array.isArray(b.ting))
     return nektet('Send { "tur_id": …, "ting": [{ "person_id": … | null, "navn": "…", "antall": 1 }], "merknad": "…" }');
   const feil: string[] = [];
@@ -20,6 +20,8 @@ export async function POST(request: Request) {
     tid: b.tur_id,
     ting,
     merknad: typeof b.merknad === "string" ? b.merknad : "",
+    // Agentens egne forslag som ikke passer lenger. Databasen fjerner bare det agenten har foreslått, og ikke det som er pakket.
+    fjern: Array.isArray(b.fjern) ? b.fjern.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/.test(x)).slice(0, 250) : [],
   });
   if (error) return nektet(error.message);
   return Response.json({ lagret: true, lagt_til: data });

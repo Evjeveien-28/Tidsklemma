@@ -8,6 +8,8 @@ import { hentPersoner } from "../husstand/personer";
 import { hentHusstand } from "../planter/data";
 import { startAgent } from "../middag/agent/start";
 import { hentAlltid, lesTing } from "./data";
+import { finnStedITekst } from "./vaer";
+import { agentKlar } from "../middag/agent/start";
 
 async function husstanden() {
   const supabase = await createClient();
@@ -26,11 +28,18 @@ async function turFelt(fd: FormData, supabase: Awaited<ReturnType<typeof createC
   let til = tekst(fd, "til", 10);
   if (!erDato(fra)) return null;
   if (!erDato(til) || til < fra) til = fra;
-  const husstand = new Set((await hentPersoner(supabase, hid)).map((p) => p.id));
+  const personer = await hentPersoner(supabase, hid);
+  const husstand = new Set(personer.map((p) => p.id));
+  const tittel = tekst(fd, "tittel", 80) || "Tur";
+  const beskrivelse = tekst(fd, "beskrivelse", 2000);
+  // Står «Hvor» tomt, prøver vi å finne stedet i teksten («Hytta på Hafjell» → Hafjell), så været virker.
+  const sted =
+    tekst(fd, "sted", 120) ||
+    ((await finnStedITekst(`${tittel}. ${beskrivelse}`, personer.map((p) => p.navn)).catch(() => null))?.navn ?? "");
   return {
-    tittel: tekst(fd, "tittel", 80) || "Tur",
-    beskrivelse: tekst(fd, "beskrivelse", 2000),
-    sted: tekst(fd, "sted", 120),
+    tittel,
+    beskrivelse,
+    sted,
     fra,
     til,
     personer: fd.getAll("person").map(String).filter((p) => husstand.has(p)),
@@ -44,6 +53,8 @@ export async function nyTur(fd: FormData) {
   const { data, error } = await db.from("turer").insert({ household_id: hid, ...felt }).select("id").single();
   if (error || !data) redirect("/pakkeliste/ny?feil=lagre");
   await leggTilAlltid(supabase, hid, data.id, felt.personer, true);
+  // Agenten foreslår resten med en gang.
+  await bestillAgent(db, hid, data.id);
   revalidatePath("/", "layout");
   redirect(`/pakkeliste/${data.id}`);
 }
@@ -59,6 +70,11 @@ export async function endreTur(fd: FormData) {
   // De som er lagt til i turen, får det som alltid skal med.
   const nye = felt.personer.filter((p) => !((for_?.personer as string[] | undefined) ?? []).includes(p));
   if (nye.length) await leggTilAlltid(supabase, hid, id, nye, false);
+  // Har man kommet på noe, ser agenten på listen på nytt. Ikke når listen er låst.
+  if (fd.get("ny_runde") === "1") {
+    const { data: tur } = await db.from("turer").select("laast_at").eq("id", id).maybeSingle();
+    if (tur && !tur.laast_at) await bestillAgent(db, hid, id);
+  }
   revalidatePath("/", "layout");
   redirect(`/pakkeliste/${id}`);
 }
@@ -114,7 +130,8 @@ export async function endreTing(fd: FormData) {
   const { db } = await husstanden();
   const navn = tekst(fd, "navn", 120);
   const antall = Math.min(Math.max(Math.round(Number(fd.get("antall")) || 1), 1), 99);
-  if (navn) await db.from("ting").update({ navn, antall, person_id: erId(person) ? person : null }).eq("id", id);
+  // En ting man har endret selv, er ens egen: agenten fjerner den ikke i en ny runde.
+  if (navn) await db.from("ting").update({ navn, antall, person_id: erId(person) ? person : null, kilde: "manuell" }).eq("id", id);
   revalidatePath(`/pakkeliste/${tur}`);
   redirect(`/pakkeliste/${tur}`);
 }
@@ -141,29 +158,38 @@ export async function nullstillPakket(fd: FormData) {
 }
 
 /**
- * Be agenten om forslag til pakkelisten. Den legger til ting, og lar det som står der i fred.
+ * Bestill forslag fra agenten. Den legger til det som mangler, og kan fjerne sine egne forslag som ikke passer lenger.
+ * Det man har lagt til selv, det som alltid er med, og det som er pakket, røres ikke.
  * Hver kjøring bruker av Claude-kvoten: ikke en ny mens en er i gang, og høyst ti i døgnet per husstand.
  */
-export async function bestillForslag(fd: FormData) {
-  const id = String(fd.get("tur") ?? "");
-  if (!erId(id)) redirect("/pakkeliste");
-  const { db, hid } = await husstanden();
+async function bestillAgent(db: ReturnType<Awaited<ReturnType<typeof createClient>>["schema"]>, hid: string, id: string): Promise<"ok" | "pagar" | "mange" | "av"> {
+  if (!agentKlar()) return "av";
   const { data: turer } = await db
     .from("turer")
     .select("id, forslag_status, forslag_bestilt_at")
     .eq("household_id", hid)
     .gte("forslag_bestilt_at", new Date(Date.now() - 86_400_000).toISOString());
   const denne = (turer ?? []).find((t) => t.id === id);
-  const pagar = denne && (denne.forslag_status === "venter" || denne.forslag_status === "jobber") && Date.parse(denne.forslag_bestilt_at) > Date.now() - 15 * 60_000;
-  if (pagar) redirect(`/pakkeliste/${id}`);
-  if ((turer ?? []).length >= 10) redirect(`/pakkeliste/${id}?feil=mange`);
+  if (denne && (denne.forslag_status === "venter" || denne.forslag_status === "jobber") && Date.parse(denne.forslag_bestilt_at) > Date.now() - 15 * 60_000)
+    return "pagar";
+  if ((turer ?? []).length >= 10) return "mange";
   const { error } = await db
     .from("turer")
     .update({ forslag_status: "venter", forslag_bestilt_at: new Date().toISOString(), forslag_merknad: null })
     .eq("id", id);
-  if (!error) after(startAgent);
+  if (error) return "av";
+  after(startAgent);
+  return "ok";
+}
+
+/** Prøv igjen når agenten ikke fikk det til. */
+export async function bestillForslag(fd: FormData) {
+  const id = String(fd.get("tur") ?? "");
+  if (!erId(id)) redirect("/pakkeliste");
+  const { db, hid } = await husstanden();
+  const svar = await bestillAgent(db, hid, id);
   revalidatePath("/", "layout");
-  redirect(`/pakkeliste/${id}`);
+  redirect(`/pakkeliste/${id}${svar === "mange" ? "?feil=mange" : ""}`);
 }
 
 /**
