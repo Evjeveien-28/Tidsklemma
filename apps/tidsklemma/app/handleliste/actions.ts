@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@hjem/db/server";
 import { hentHusstand } from "../planter/data";
+import { flyttFraHandleliste } from "../middag/actions";
 import { lesVarer } from "./les";
 import { sokOda, type Produkt } from "./oda";
 
@@ -56,7 +57,13 @@ export async function lagreVare(fd: FormData) {
   const butikk = String(fd.get("butikk") ?? "") || null;
   if (!navn) redirect(`/handleliste/${id}?feil=navn`);
   const { db } = await husstanden();
+  const { data: for_ } = await db.from("varer").select("butikk, kilde, kilde_uke, produkt").eq("id", id).maybeSingle();
   await db.from("varer").update({ navn, antall, butikk }).eq("id", id);
+  // En middagsvare som flyttes, flyttes i ukesmenyen også. Ellers flytter Middag den tilbake neste gang listen oppdateres.
+  const innkjop = (for_?.produkt as Produkt | null)?.middag?.innkjop;
+  if (for_?.kilde === "middag" && for_.kilde_uke && innkjop && butikk && butikk !== for_.butikk) {
+    await flyttFraHandleliste(String(for_.kilde_uke), innkjop, butikk);
+  }
   revalidatePath("/", "layout");
   redirect("/handleliste");
 }

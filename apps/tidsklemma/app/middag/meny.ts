@@ -44,6 +44,8 @@ export type Valg = {
   /** Rester agenten trodde vi hadde, men som vi likevel må kjøpe. */
   trenger?: string[];
   fordeling?: string[];
+  /** Varer husstanden har flyttet til en annen butikk enn appen foreslo: innkjøps-id → butikk-kode. */
+  flytt?: Record<string, string>;
   /** Ukesplanen er låst: rettene er bestemt, og agenten har laget innkjøpene for akkurat dem. */
   laast?: boolean;
 };

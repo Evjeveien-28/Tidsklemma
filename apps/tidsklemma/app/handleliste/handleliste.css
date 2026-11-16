@@ -35,3 +35,13 @@
 .pmerke.anslag { border: 1.5px solid var(--dempet); color: var(--dempet); }
 .pforklaring { margin-top: 10px; }
 .hl-tekst .hl-spart { color: #4c5a24; }
+.hl-flytt { margin: 2px 0 0; font-size: 13px; color: var(--dempet); }
+.hl-flytt select {
+  font-size: 13px;
+  color: var(--brun);
+  background: transparent;
+  border: 1px solid #d9c9b0;
+  border-radius: 6px;
+  padding: 2px 4px;
+  max-width: 100%;
+}

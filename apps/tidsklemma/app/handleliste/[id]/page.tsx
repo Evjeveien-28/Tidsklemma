@@ -43,6 +43,11 @@ export default async function VareSide({ params, searchParams }: { params: Promi
           {valgbare.map((b) => (
             <option key={b.kode} value={b.kode}>
               {b.navn}
+              {(() => {
+                const p = v.produkt?.middag?.priser[b.kode];
+                if (!p) return null;
+                return p.pris != null ? ` · ${kr(p.pris)} kr${p.tilbud ? " (tilbud)" : p.anslag ? " (anslag)" : ""}` : " · ingen pris";
+              })()}
             </option>
           ))}
         </select>

@@ -69,7 +69,7 @@ function bedreRangert(a: number[], b: number[]): boolean {
  *
  * Standardvalget er «billigst». Har husstanden valgt selv (`valgt`), brukes det.
  */
-export function prisoversikt(innkjop: Innkjop[], butikker: string[], maks: number, valgt?: string[]) {
+export function prisoversikt(innkjop: Innkjop[], butikker: string[], maks: number, valgt?: string[], flytt?: Record<string, string>) {
   // Varene fordeles på butikkene i rangert rekkefølge, så lik pris havner hos den høyest rangerte.
   const hver = butikker.map((b) => summer(innkjop, [b]));
   const kandidater: Sum[] = [...hver];
@@ -92,6 +92,30 @@ export function prisoversikt(innkjop: Innkjop[], butikker: string[], maks: numbe
   const alternativer: Butikkvalg[] = [...(fordelt ? [fordelt] : []), ...hver].map((s) => ({ ...s, ekstra: rund(s.sum - (billigst?.sum ?? s.sum)) }));
   const standard = alternativer[0] ?? null;
   const nokkel = valgt?.join(",");
-  const aktiv = (nokkel && alternativer.find((a) => a.butikker.join(",") === nokkel)) || (valgt?.length ? summer(innkjop, valgt) : standard);
-  return { alternativer, billigst, fordelt, standard, aktiv };
+  const valgtSum = (nokkel && alternativer.find((a) => a.butikker.join(",") === nokkel)) || (valgt?.length ? summer(innkjop, valgt) : standard);
+  const aktiv = valgtSum && flytt && Object.keys(flytt).length ? medFlytt(innkjop, valgtSum, butikker, flytt) : valgtSum;
+  return { alternativer, billigst, fordelt, standard, valgt: valgtSum, aktiv };
+}
+
+/**
+ * Fordelingen etter at husstanden har flyttet enkeltvarer til en annen butikk. Butikkene som da er i bruk,
+ * står i husstandens rekkefølge.
+ */
+export function medFlytt(innkjop: Innkjop[], s: Sum, rekkefolge: string[], flytt: Record<string, string>): Sum {
+  const plassering = { ...s.plassering };
+  for (const i of innkjop) if (flytt[i.id] && rekkefolge.includes(flytt[i.id]!)) plassering[i.id] = flytt[i.id]!;
+  let sum = 0;
+  let tilbud = 0;
+  let anslag = 0;
+  let mangler = 0;
+  for (const i of innkjop) {
+    const p = prisHos(i, plassering[i.id] ?? s.butikker[0]!);
+    if (p.pris == null) mangler++;
+    else sum += p.pris;
+    if (p.tilbud) tilbud++;
+    if (p.anslag) anslag++;
+  }
+  const brukt = new Set([...s.butikker, ...innkjop.map((i) => plassering[i.id]).filter((b): b is string => !!b)]);
+  const butikker = rekkefolge.filter((b) => brukt.has(b) && innkjop.some((i) => (plassering[i.id] ?? s.butikker[0]) === b));
+  return { butikker: butikker.length ? butikker : s.butikker, sum: Math.round(sum * 100) / 100, mangler, tilbud, anslag, plassering };
 }
