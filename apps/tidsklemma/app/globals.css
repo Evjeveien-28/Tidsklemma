@@ -380,3 +380,26 @@ fieldset.kort legend { padding: 0 4px; }
 .omfang { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .tid-rad { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
 .tid-rad .felt { width: auto; flex: 1; margin: 0; padding: 10px 12px; }
+
+/* Dra ned for å oppdatere (bare når appen er på hjemskjermen) */
+.dra-oppdater {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 50%;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--felt);
+  color: var(--brun);
+  border: 2px solid var(--brun);
+  font-size: 22px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.dra-oppdater > span:first-child { display: inline-block; transition: transform 0.15s; }
+.dra-snurr { animation: dra-snurr 0.8s linear infinite; }
+@keyframes dra-snurr { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .dra-snurr { animation: none; } }
