@@ -11,19 +11,21 @@ export type Vare = {
   produkt: Produkt | null;
   uten_pris: boolean;
   kilde: "middag" | null;
+  /** Listen varen står på. Null er matlisten. */
+  liste_id: string | null;
   avkrysset_at: string | null;
   created_at: string;
 };
 
-export const VAREFELT = "id, navn, antall, butikk, produkt, uten_pris, kilde, avkrysset_at, created_at";
+export const VAREFELT = "id, navn, antall, butikk, produkt, uten_pris, kilde, liste_id, avkrysset_at, created_at";
 
-export async function hentVarer(supabase: Klient, husstand: string): Promise<Vare[]> {
-  const { data, error } = await supabase
-    .schema("handleliste")
-    .from("varer")
-    .select(VAREFELT)
-    .eq("household_id", husstand)
-    .order("created_at");
+/** En egen liste, f.eks. «Jul». Matlisten er ikke en rad: den er varene uten liste_id. */
+export type EgenListe = { id: string; navn: string };
+
+/** Varene på én liste (null = matlisten). */
+export async function hentVarer(supabase: Klient, husstand: string, liste: string | null = null): Promise<Vare[]> {
+  const sporring = supabase.schema("handleliste").from("varer").select(VAREFELT).eq("household_id", husstand);
+  const { data, error } = await (liste ? sporring.eq("liste_id", liste) : sporring.is("liste_id", null)).order("created_at");
   if (error) throw new Error(error.message);
   return (data as Vare[]).map((v) => ({ ...v, antall: Number(v.antall) }));
 }
@@ -72,3 +74,13 @@ export function egneButikker(varer: Pick<Vare, "butikk">[], kjente: Set<string>)
   const navn = varer.map((v) => v.butikk).filter((b): b is string => !!b && !kjente.has(b));
   return [...new Set(navn)].sort((a, b) => a.localeCompare(b, "nb"));
 }
+
+/** Husstandens egne lister, eldste først. */
+export async function hentLister(supabase: Klient, husstand: string): Promise<EgenListe[]> {
+  const { data, error } = await supabase.schema("handleliste").from("lister").select("id, navn").eq("household_id", husstand).order("created_at");
+  if (error) throw new Error(error.message);
+  return data as EgenListe[];
+}
+
+/** Adressen til en liste. */
+export const listeSti = (liste: string | null | undefined) => (liste ? `/handleliste?liste=${liste}` : "/handleliste");

@@ -4,7 +4,7 @@ import { Bilde } from "../../middag/bilde";
 import { BUTIKKER, butikkNavn } from "../../middag/butikker";
 import { Side } from "../../side";
 import { lagreVare, slettVare, velgProdukt } from "../actions";
-import { egneButikker, kr, VAREFELT, type Vare } from "../data";
+import { egneButikker, kr, listeSti, VAREFELT, type Vare } from "../data";
 import { sokOda } from "../oda";
 
 export default async function VareSide({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ feil?: string }> }) {
@@ -14,17 +14,19 @@ export default async function VareSide({ params, searchParams }: { params: Promi
   const { data } = await supabase.schema("handleliste").from("varer").select(`${VAREFELT}, household_id`).eq("id", id).maybeSingle();
   if (!data) notFound();
   const v = data as Vare & { household_id: string };
+  // Bare matlisten har priser fra Oda og matbutikkene. Andre lister (f.eks. «Jul») har bare fritekstbutikker.
+  const mat = !v.liste_id;
   const [forslag, { data: inn }] = await Promise.all([
-    sokOda(v.navn, 8),
+    mat ? sokOda(v.navn, 8) : Promise.resolve([]),
     supabase.schema("middag").from("innstillinger").select("butikker").eq("household_id", v.household_id).maybeSingle(),
   ]);
   const vare = forslag.some((p) => p.id === v.produkt?.id) || !v.produkt ? forslag : [v.produkt, ...forslag];
-  const valgbare = (inn?.butikker as string[] | undefined)?.length ? BUTIKKER.filter((b) => (inn!.butikker as string[]).includes(b.kode)) : BUTIKKER;
+  const valgbare = !mat ? [] : (inn?.butikker as string[] | undefined)?.length ? BUTIKKER.filter((b) => (inn!.butikker as string[]).includes(b.kode)) : BUTIKKER;
   // Butikken varen står på, selv om den er skrevet inn som fritekst (f.eks. «Clas Ohlson») eller ikke er i listen over.
   const egne = egneButikker([v], new Set(valgbare.map((b) => b.kode)));
 
   return (
-    <Side tittel={v.navn} tilbake={{ href: "/handleliste", navn: "Handleliste" }}>
+    <Side tittel={v.navn} tilbake={{ href: listeSti(v.liste_id), navn: "Handleliste" }}>
       <form action={lagreVare}>
         <input type="hidden" name="vare" value={v.id} />
         <div className="to-felt">
@@ -64,6 +66,7 @@ export default async function VareSide({ params, searchParams }: { params: Promi
         </button>
       </form>
 
+      {mat && (
       <section className="kort" style={{ marginTop: 20 }}>
         <p className="kt">Pris anslått fra</p>
         <form action={velgProdukt}>
@@ -102,6 +105,7 @@ export default async function VareSide({ params, searchParams }: { params: Promi
           </button>
         </form>
       </section>
+      )}
 
       <form action={slettVare} className="bunnknapper">
         <input type="hidden" name="vare" value={v.id} />

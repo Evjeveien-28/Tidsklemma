@@ -1,4 +1,25 @@
 /* Handleliste */
+/* Listene som faner. Den nye-liste-boksen legger seg på en egen linje under. */
+.hl-faner { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+.hl-fane {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 2px solid var(--brun);
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--brun);
+  background: var(--felt);
+  cursor: pointer;
+}
+.hl-fane.valgt { background: var(--brun); color: var(--krem); }
+.hl-fane.apen { background: var(--krem-mork); }
+.hl-ny-liste-skjema { flex: 1 0 100%; display: flex; gap: 10px; align-items: center; }
+.hl-ny-liste-skjema .felt { flex: 1; margin: 0; min-width: 0; }
+.hl-ny-liste-skjema button { margin: 0; width: auto; }
+.hl-slett-liste { margin-top: 24px; text-align: center; }
+.hl-slett-liste summary { cursor: pointer; list-style: none; }
 .hl-ny { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
 .hl-ny .felt { flex: 1; margin: 0; min-width: 0; }
 .hl-ny .pluss { flex: none; border: 0; }
