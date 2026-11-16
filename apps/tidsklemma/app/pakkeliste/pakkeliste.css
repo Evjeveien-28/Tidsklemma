@@ -1,0 +1,16 @@
+.pk-turer { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pk-tur { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-decoration: none; margin: 0; }
+.pk-tur b { display: block; font-size: 18px; }
+.pk-tur small { display: block; }
+.pk-status { text-align: right; flex: none; }
+.pk-prikker { display: flex; gap: 4px; margin-top: 6px; }
+.pk-prikker i, .pk-hode i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.pk-beskrivelse { white-space: pre-line; }
+.pk-fremdrift { position: relative; height: 28px; border-radius: 14px; background: var(--felt); border: 1.5px solid #e0d2bb; overflow: hidden; margin: 8px 0 16px; }
+.pk-fremdrift span { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--avokado) 35%, var(--felt)); transition: width 0.3s; }
+.pk-fremdrift small { position: relative; display: block; text-align: center; line-height: 25px; font-weight: 600; }
+.pk-gruppe { margin-top: 14px; scroll-margin-top: 20px; }
+.pk-hode { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.pk-hode .dempet { margin-left: auto; letter-spacing: 0; }
+.pk-legg-til, .pk-laas { margin-top: 18px; }
+.pk-laas .dempet { margin: 4px 0 10px; }
