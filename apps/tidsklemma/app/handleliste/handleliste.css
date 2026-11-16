@@ -1,5 +1,5 @@
 /* Handleliste */
-.hl-ny { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.hl-ny { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
 .hl-ny .felt { flex: 1; margin: 0; min-width: 0; }
 .hl-ny .pluss { flex: none; border: 0; }
 .hl-sum { margin: 10px 0 6px; font-size: 17px; }
@@ -45,3 +45,5 @@
   padding: 2px 4px;
   max-width: 100%;
 }
+.hl-ny-butikk { flex: 1 0 100%; display: flex; gap: 10px; align-items: center; font-size: 15px; }
+.hl-ny-butikk .felt { flex: 1; margin: 0; min-width: 0; padding-top: 8px; padding-bottom: 8px; }

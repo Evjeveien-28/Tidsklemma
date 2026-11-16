@@ -1,10 +1,11 @@
 import { createClient } from "@hjem/db/server";
 import { DatabaseFeil } from "../database-feil";
-import { butikkNavn } from "../middag/butikker";
+import { BUTIKKER, butikkNavn } from "../middag/butikker";
 import { hentHusstand } from "../planter/data";
 import { Side } from "../side";
 import { fjernAvkryssede, leggTil } from "./actions";
 import { anslag, finnTilbud, hentVarer, kr, produktTekst, type Vare } from "./data";
+import { ButikkVelger } from "./butikk-velger";
 import { LeggTilKnapp } from "./legg-til-knapp";
 import { Liste, type Rad } from "./liste";
 
@@ -72,6 +73,8 @@ export default async function Handleliste() {
   const ukensTilbud = ((tilbud ?? []) as { butikk: string; navn: string; pris: number; gyldig_til: string }[]).map((t) => ({ ...t, pris: Number(t.pris) }));
   const { data: inn } = await supabase.schema("middag").from("innstillinger").select("butikker").eq("household_id", husstand.id).maybeSingle();
   const rekkefolge = ((inn?.butikker as string[] | undefined) ?? []);
+  // Butikkene man kan velge når man legger til: husstandens fra Middag, ellers alle.
+  const valgbare = rekkefolge.length ? rekkefolge.map((k) => ({ kode: k, navn: butikkNavn(k) })) : BUTIKKER.map((b) => ({ kode: b.kode, navn: b.navn }));
 
   const igjen = varer.filter((v) => !v.avkrysset_at);
   const kurven = varer.filter((v) => v.avkrysset_at);
@@ -84,7 +87,7 @@ export default async function Handleliste() {
     (a, b) => (rekkefolge.indexOf(a) + 1 || 99) - (rekkefolge.indexOf(b) + 1 || 99),
   );
   const grupper = [
-    { navn: null, rader: igjen.filter((v) => !v.butikk).map((v) => tilRad(v, ukensTilbud)) },
+    { navn: butikker.length ? "Uspesifisert" : null, rader: igjen.filter((v) => !v.butikk).map((v) => tilRad(v, ukensTilbud)) },
     ...butikker.map((b) => ({ navn: butikkNavn(b), rader: igjen.filter((v) => v.butikk === b).map((v) => tilRad(v, ukensTilbud)) })),
   ].filter((g) => g.rader.length > 0);
 
@@ -96,6 +99,7 @@ export default async function Handleliste() {
         </label>
         <input id="tekst" name="tekst" required maxLength={500} autoComplete="off" placeholder="F.eks. melk, 2 brød, oppvaskmiddel" className="felt" />
         <LeggTilKnapp />
+        {valgbare.length > 0 && <ButikkVelger valg={valgbare} />}
       </form>
 
       {igjen.length > 0 && (
