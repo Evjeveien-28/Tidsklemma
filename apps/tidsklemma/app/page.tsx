@@ -12,6 +12,21 @@ import { lagreFornavn } from "./meg/actions";
 import { hentBruker } from "./meg/bruker";
 import { PasskeyForslag } from "./passkey-forslag";
 import { Side } from "./side";
+import { hentPersoner, type Person } from "./husstand/personer";
+import "./forside.css";
+
+/** Hvem flisen gjelder: én prikk per person, i personens farge. */
+function Prikker({ ider, personer }: { ider?: string[]; personer: Person[] }) {
+  const med = personer.filter((p) => ider?.includes(p.id));
+  if (med.length === 0) return null;
+  return (
+    <span className="flis-prikker" aria-label={`Gjelder ${med.map((p) => p.navn).join(", ")}`}>
+      {med.map((p) => (
+        <i key={p.id} style={{ background: p.farge }} title={p.navn} />
+      ))}
+    </span>
+  );
+}
 
 const farger = ["brun", "blaa", "gronn", "krem"] as const;
 
@@ -29,7 +44,8 @@ export default async function Hjem() {
   const husstand = husstander?.[0];
 
   // Levende tekst og rød prikk på flisene som har noe å melde.
-  const status: Record<string, { tekst: string; antall: number }> = {};
+  // `personer`: hvem det gjelder, vist som prikker i personenes farger.
+  const status: Record<string, { tekst: string; antall: number; personer?: string[] }> = {};
   if (husstand) {
     const handleliste = await hentHandleliste(supabase, husstand.id).catch(() => null);
     if (handleliste) {
@@ -57,6 +73,8 @@ export default async function Hjem() {
       };
     }
   }
+
+  const personer = husstand ? await hentPersoner(supabase, husstand.id).catch(() => []) : [];
 
   return (
     <Side>
@@ -105,6 +123,7 @@ export default async function Hjem() {
               ) : null}
               <b>{del.navn}</b>
               <small>{status[del.slug]?.tekst ?? del.beskrivelse}</small>
+              <Prikker ider={status[del.slug]?.personer} personer={personer} />
             </Link>
           ))}
         </div>

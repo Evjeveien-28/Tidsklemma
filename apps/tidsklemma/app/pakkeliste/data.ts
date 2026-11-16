@@ -88,21 +88,21 @@ export function netter(fra: string, til: string): string {
 }
 
 /** Til flisen på startsiden: neste tur og hvor mye som er pakket. */
-export async function pakkelisteStatus(supabase: Klient, husstand: string, idag: string): Promise<{ antall: number; tekst: string } | null> {
+export async function pakkelisteStatus(supabase: Klient, husstand: string, idag: string): Promise<{ antall: number; tekst: string; personer: string[] } | null> {
   const { data } = await supabase
     .schema("pakkeliste")
     .from("turer")
-    .select("id, tittel, fra, til")
+    .select("id, tittel, fra, til, personer")
     .eq("household_id", husstand)
     .gte("til", idag)
     .order("fra")
     .limit(1);
-  const tur = (data ?? [])[0] as Pick<Tur, "id" | "tittel" | "fra" | "til"> | undefined;
+  const tur = (data ?? [])[0] as Pick<Tur, "id" | "tittel" | "fra" | "til" | "personer"> | undefined;
   if (!tur) return null;
   const f = (await hentFremdrift(supabase, [tur.id])).get(tur.id);
   const dager = Math.round((Date.parse(`${tur.fra}T12:00:00Z`) - Date.parse(`${idag}T12:00:00Z`)) / 86_400_000);
   const nar = dager <= 0 ? "nå" : dager === 1 ? "i morgen" : `om ${dager} dager`;
-  return { antall: 0, tekst: `${tur.tittel} ${nar}${f && f.alle ? ` · ${f.pakket}/${f.alle} pakket` : ""}` };
+  return { antall: 0, tekst: `${tur.tittel} ${nar}${f && f.alle ? ` · ${f.pakket}/${f.alle} pakket` : ""}`, personer: tur.personer };
 }
 
 export type Alltid = { id: string; person_id: string | null; navn: string; antall: number };
