@@ -104,3 +104,34 @@ export async function pakkelisteStatus(supabase: Klient, husstand: string, idag:
   const nar = dager <= 0 ? "nå" : dager === 1 ? "i morgen" : `om ${dager} dager`;
   return { antall: 0, tekst: `${tur.tittel} ${nar}${f && f.alle ? ` · ${f.pakket}/${f.alle} pakket` : ""}` };
 }
+
+export type Alltid = { id: string; person_id: string | null; navn: string; antall: number };
+
+export async function hentAlltid(supabase: Klient, husstand: string): Promise<Alltid[]> {
+  const { data } = await supabase.schema("pakkeliste").from("alltid").select("id, person_id, navn, antall").eq("household_id", husstand).order("created_at");
+  return (data ?? []) as Alltid[];
+}
+
+export async function hentInstruksjoner(supabase: Klient, husstand: string): Promise<string> {
+  const { data } = await supabase.schema("pakkeliste").from("innstillinger").select("instruksjoner").eq("household_id", husstand).maybeSingle();
+  return (data?.instruksjoner as string | undefined) ?? "";
+}
+
+/** «ullundertøy, 3 sokker» eller én per linje → [{ navn, antall }]. «sokker x3» virker også. */
+export function lesTing(tekst: string): { navn: string; antall: number }[] {
+  return tekst
+    .split(/[,\n]/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 100)
+    .map((t) => {
+      const m = t.match(/^(\d{1,2})\s*[x×]?\s+(.+)$/i) ?? t.match(/^(.+?)\s*[x×]\s*(\d{1,2})$/i);
+      const [navn, antall] = m ? (/^\d/.test(m[1]!) ? [m[2]!, Number(m[1])] : [m[1]!, Number(m[2])]) : [t, 1];
+      return { navn: navn.slice(0, 120), antall: Math.min(Math.max(antall, 1), 99) };
+    });
+}
+
+/** Tilbake til tekst i skjemaet: «3 sokker». */
+export function tingTekst(t: { navn: string; antall: number }[]): string {
+  return t.map((x) => (x.antall > 1 ? `${x.antall} ${x.navn}` : x.navn)).join("\n");
+}

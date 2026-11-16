@@ -7,6 +7,7 @@ import { createClient } from "@hjem/db/server";
 import { hentPersoner } from "../husstand/personer";
 import { hentHusstand } from "../planter/data";
 import { startAgent } from "../middag/agent/start";
+import { hentAlltid, lesTing } from "./data";
 
 async function husstanden() {
   const supabase = await createClient();
@@ -42,6 +43,7 @@ export async function nyTur(fd: FormData) {
   if (!felt) redirect("/pakkeliste/ny?feil=dato");
   const { data, error } = await db.from("turer").insert({ household_id: hid, ...felt }).select("id").single();
   if (error || !data) redirect("/pakkeliste/ny?feil=lagre");
+  await leggTilAlltid(supabase, hid, data.id, felt.personer, true);
   revalidatePath("/", "layout");
   redirect(`/pakkeliste/${data.id}`);
 }
@@ -52,7 +54,11 @@ export async function endreTur(fd: FormData) {
   const { supabase, db, hid } = await husstanden();
   const felt = await turFelt(fd, supabase, hid);
   if (!felt) redirect(`/pakkeliste/${id}/endre?feil=dato`);
+  const { data: for_ } = await db.from("turer").select("personer").eq("id", id).maybeSingle();
   await db.from("turer").update(felt).eq("id", id);
+  // De som er lagt til i turen, får det som alltid skal med.
+  const nye = felt.personer.filter((p) => !((for_?.personer as string[] | undefined) ?? []).includes(p));
+  if (nye.length) await leggTilAlltid(supabase, hid, id, nye, false);
   revalidatePath("/", "layout");
   redirect(`/pakkeliste/${id}`);
 }
@@ -71,17 +77,9 @@ export async function leggTil(fd: FormData) {
   const person = String(fd.get("person") ?? "");
   if (!erId(tur)) redirect("/pakkeliste");
   const { db, hid } = await husstanden();
-  const ting = String(fd.get("navn") ?? "")
-    .split(/[,\n]/)
-    .map((t) => t.trim())
-    .filter(Boolean)
+  const ting = lesTing(String(fd.get("navn") ?? ""))
     .slice(0, 50)
-    .map((t) => {
-      // «3 sokker» eller «sokker x3» gir antall 3.
-      const m = t.match(/^(\d{1,2})\s+(.+)$/) ?? t.match(/^(.+?)\s*[x×]\s*(\d{1,2})$/i);
-      const [navn, antall] = m ? (/^\d/.test(m[1]!) ? [m[2]!, Number(m[1])] : [m[1]!, Number(m[2])]) : [t, 1];
-      return { tur_id: tur, household_id: hid, person_id: erId(person) ? person : null, navn: navn.slice(0, 120), antall: Math.min(Math.max(antall, 1), 99) };
-    });
+    .map((t) => ({ tur_id: tur, household_id: hid, person_id: erId(person) ? person : null, ...t }));
   if (ting.length) await db.from("ting").insert(ting);
   revalidatePath(`/pakkeliste/${tur}`);
   redirect(`/pakkeliste/${tur}#${erId(person) ? person : "felles"}`);
@@ -166,4 +164,35 @@ export async function bestillForslag(fd: FormData) {
   if (!error) after(startAgent);
   revalidatePath("/", "layout");
   redirect(`/pakkeliste/${id}`);
+}
+
+/**
+ * Legg det som alltid skal med på turen: for personene, og felles hvis `felles`. Det som allerede står der, hoppes over.
+ */
+async function leggTilAlltid(supabase: Awaited<ReturnType<typeof createClient>>, hid: string, tur: string, personer: string[], felles: boolean) {
+  const alltid = (await hentAlltid(supabase, hid)).filter((a) => (a.person_id ? personer.includes(a.person_id) : felles));
+  if (alltid.length === 0) return;
+  const db = supabase.schema("pakkeliste");
+  const { data: finnes } = await db.from("ting").select("person_id, navn").eq("tur_id", tur);
+  const har = new Set((finnes ?? []).map((t) => `${t.person_id ?? ""}|${String(t.navn).toLowerCase()}`));
+  const nye = alltid
+    .filter((a) => !har.has(`${a.person_id ?? ""}|${a.navn.toLowerCase()}`))
+    .map((a) => ({ tur_id: tur, household_id: hid, person_id: a.person_id, navn: a.navn, antall: a.antall, kilde: "alltid" }));
+  if (nye.length) await db.from("ting").insert(nye);
+}
+
+/** Innstillingene: det som alltid skal med (per person og felles), og instruksjoner til agenten. */
+export async function lagreInnstillinger(fd: FormData) {
+  const { supabase, db, hid } = await husstanden();
+  const personer = (await hentPersoner(supabase, hid)).map((p) => p.id);
+  const rader = [null, ...personer].flatMap((p) =>
+    lesTing(String(fd.get(`alltid_${p ?? "felles"}`) ?? "")).map((t) => ({ household_id: hid, person_id: p, ...t })),
+  );
+  const { error: e1 } = await db
+    .from("innstillinger")
+    .upsert({ household_id: hid, instruksjoner: tekst(fd, "instruksjoner", 2000), updated_at: new Date().toISOString() }, { onConflict: "household_id" });
+  await db.from("alltid").delete().eq("household_id", hid);
+  const { error: e2 } = rader.length ? await db.from("alltid").insert(rader) : { error: null };
+  revalidatePath("/pakkeliste", "layout");
+  redirect(`/pakkeliste/innstillinger?${e1 || e2 ? "feil=1" : "lagret=1"}`);
 }
