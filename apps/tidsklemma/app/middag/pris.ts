@@ -1,23 +1,33 @@
 import type { Innkjop } from "./meny";
 
-export function prisHos(i: Innkjop, butikk: string): { pris: number | null; tilbud: boolean } {
+/** Prisen i én butikk. Har butikken ingen egen pris, brukes Odas vanlige pris som anslag (`anslag`). */
+export function prisHos(i: Innkjop, butikk: string): { pris: number | null; tilbud: boolean; anslag: boolean } {
   const p = i.priser[butikk];
-  return p ? { pris: p.pris, tilbud: Boolean(p.tilbud) } : { pris: i.referanse, tilbud: false };
+  return p ? { pris: p.pris, tilbud: Boolean(p.tilbud), anslag: false } : { pris: i.referanse, tilbud: false, anslag: i.referanse != null };
 }
 
-export type Sum = { butikker: string[]; sum: number; mangler: number; tilbud: number; plassering: Record<string, string> };
+export type Sum = {
+  butikker: string[];
+  sum: number;
+  mangler: number;
+  tilbud: number;
+  /** Varer der butikken ikke har egen pris, så Oda-prisen er brukt som anslag. */
+  anslag: number;
+  plassering: Record<string, string>;
+};
 
 /** Hva alt koster om vi handler i disse butikkene, og hver vare kjøpes der den er billigst. Lik pris: høyest rangerte. */
 export function summer(innkjop: Innkjop[], butikker: string[]): Sum {
   let sum = 0;
   let mangler = 0;
   let tilbud = 0;
+  let anslag = 0;
   const plassering: Record<string, string> = {};
   for (const i of innkjop) {
-    let best: { butikk: string; pris: number; tilbud: boolean } | null = null;
+    let best: { butikk: string; pris: number; tilbud: boolean; anslag: boolean } | null = null;
     for (const b of butikker) {
       const p = prisHos(i, b);
-      if (p.pris != null && (!best || p.pris < best.pris - 0.001)) best = { butikk: b, pris: p.pris, tilbud: p.tilbud };
+      if (p.pris != null && (!best || p.pris < best.pris - 0.001)) best = { butikk: b, pris: p.pris, tilbud: p.tilbud, anslag: p.anslag };
     }
     if (!best) {
       mangler++;
@@ -26,9 +36,10 @@ export function summer(innkjop: Innkjop[], butikker: string[]): Sum {
     }
     sum += best.pris;
     if (best.tilbud) tilbud++;
+    if (best.anslag) anslag++;
     plassering[i.id] = best.butikk;
   }
-  return { butikker, sum: Math.round(sum * 100) / 100, mangler, tilbud, plassering };
+  return { butikker, sum: Math.round(sum * 100) / 100, mangler, tilbud, anslag, plassering };
 }
 
 function kombinasjoner<T>(liste: T[], k: number): T[][] {
