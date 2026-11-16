@@ -87,6 +87,13 @@ export async function velgProdukt(fd: FormData) {
   redirect("/handleliste");
 }
 
+/** Fjern en vare. Kalles fra listen (sveip til siden) uten å laste siden på nytt. */
+export async function fjernVare(id: string) {
+  const { db } = await husstanden();
+  await db.from("varer").delete().eq("id", id);
+  revalidatePath("/", "layout");
+}
+
 export async function slettVare(fd: FormData) {
   const { db } = await husstanden();
   await db.from("varer").delete().eq("id", String(fd.get("vare") ?? ""));
