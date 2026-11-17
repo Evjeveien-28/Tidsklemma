@@ -83,6 +83,14 @@ export default async function TurSide({ params, searchParams }: { params: Promis
           <Oppdater />
           <p className="kt">Agenten lager forslag</p>
           <p className="dempet liten">Den ser på turen, været og det dere har pakket før. Det dere har lagt til selv, blir stående.</p>
+          {tur.forslag_bestilt_at && Date.now() - Date.parse(tur.forslag_bestilt_at) > 15 * 60_000 && (
+            <form action={bestillForslag}>
+              <input type="hidden" name="tur" value={id} />
+              <button type="submit" className="inline-knapp">
+                Det tar lang tid. Prøv igjen
+              </button>
+            </form>
+          )}
         </div>
       ) : (
         tur.forslag_merknad && (
