@@ -6,7 +6,7 @@ import { Side } from "../../side";
 import { bestill } from "../actions";
 import { hentInnstillinger, hentOppskrifter } from "../data";
 import { BestillKnapp } from "./bestill-knapp";
-import { dagTekst, mandagI, middagsdager, standardUke, ukeTekst } from "../uke";
+import { dagTekst, mandagI, middagsdager, standardUke, ukeNr, ukeTekst } from "../uke";
 
 export default async function Planlegg({ searchParams }: { searchParams: Promise<{ uke?: string; feil?: string }> }) {
   const { uke: u, feil } = await searchParams;
@@ -75,7 +75,7 @@ export default async function Planlegg({ searchParams }: { searchParams: Promise
               </div>
             </fieldset>
           ))}
-          <BestillKnapp />
+          <BestillKnapp uke={ukeNr(uke)} />
           <p className="dempet liten" style={{ textAlign: "center" }}>
             Menyen er klar om noen minutter, med tre forslag per dag. Lager dere ny meny for samme uke, erstatter den den gamle.
           </p>
