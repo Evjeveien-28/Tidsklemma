@@ -51,6 +51,8 @@ function tilRad(v: Vare, tilbud: Parameters<typeof finnTilbud>[1]): Rad {
     tilbud: t ? `Tilbud hos ${butikkNavn(t.butikk)}: ${t.navn.charAt(0) + t.navn.slice(1).toLowerCase()}, ${kr(t.pris)}` : null,
     pris: pris != null ? (v.produkt?.middag ? kr(pris) : `ca. ${kr(pris)}`) : null,
     ...middagInfo(v),
+    lenke: v.lenke,
+    bilde: v.lenke_bilde,
     avkrysset: v.avkrysset_at != null,
   };
 }

@@ -88,3 +88,9 @@
   padding: 2px 4px;
   max-width: 100%;
 }
+/* Lenke på en vare: miniatyrbildet fra siden til høyre i raden, som åpner den i en ny fane (↗ uten bilde) */
+.hl-mini { width: 44px; height: 44px; flex: none; border-radius: 8px; object-fit: cover; background: #fff; border: 1px solid #e6d9c2; display: block; }
+.hl-lenke { flex: none; min-width: 44px; height: 44px; margin-left: 8px; display: grid; place-items: center; border-radius: 10px; color: var(--brun); text-decoration: none; font-size: 18px; font-weight: 600; }
+.hl-lenke:hover, .hl-lenke:focus-visible { background: var(--felt); }
+.hl-lenke-vis { display: flex; align-items: center; gap: 10px; margin: -4px 0 12px; }
+.hl-lenke-vis a { font-weight: 600; }

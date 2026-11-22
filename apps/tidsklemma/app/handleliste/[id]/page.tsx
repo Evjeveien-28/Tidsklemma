@@ -60,6 +60,18 @@ export default async function VareSide({ params, searchParams }: { params: Promi
             </option>
           ))}
         </select>
+        <label htmlFor="lenke" className="kt">
+          Lenke <span className="valgfritt">(valgfritt)</span>
+        </label>
+        <input id="lenke" name="lenke" type="url" inputMode="url" maxLength={2000} defaultValue={v.lenke ?? ""} placeholder="F.eks. til varen i en nettbutikk" className="felt" />
+        {v.lenke && (
+          <p className="hl-lenke-vis">
+            {v.lenke_bilde && <Bilde src={v.lenke_bilde} className="hl-mini" />}
+            <a href={v.lenke} target="_blank" rel="noopener noreferrer">
+              Åpne {new URL(v.lenke).hostname.replace(/^www\./, "")} ↗
+            </a>
+          </p>
+        )}
         {feil === "navn" && <p className="feil">Varen må ha et navn.</p>}
         <button type="submit" className="sekundar" style={{ width: "100%" }}>
           Lagre

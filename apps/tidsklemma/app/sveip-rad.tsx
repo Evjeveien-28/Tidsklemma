@@ -20,6 +20,7 @@ export function SveipRad({
   kryss,
   fjern,
   redigerHref,
+  ekstra,
   children,
 }: {
   /** Til skjermlesere, f.eks. «Rediger eller fjern melk». */
@@ -31,6 +32,8 @@ export function SveipRad({
   /** Uten fjern (f.eks. i en låst liste) vises bare Rediger. */
   fjern?: () => void;
   redigerHref: string;
+  /** Noe ved siden av raden, utenfor avkrysningen, f.eks. en lenke som åpner varen. */
+  ekstra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [dx, setDx] = useState<number | null>(null);
@@ -99,6 +102,7 @@ export function SveipRad({
           </span>
           {children}
         </button>
+        {ekstra}
         <button type="button" className="hl-mer" aria-label={`Rediger eller fjern ${navn}`} aria-expanded={apen} onClick={() => settApen(!apen)}>
           ⋯
         </button>

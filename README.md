@@ -49,7 +49,7 @@ Endringer i databasen gjøres i nettleseren: lim inn hver fil i `supabase/migrat
 
 **Pakkeliste**: kjør `20261128000000_pakkeliste.sql` `20261129000000_pakkeliste_agent.sql` `20261130000000_pakkeliste_innstillinger.sql` og `20261201000000_pakkeliste_ny_runde.sql`. Legg til schemaet `pakkeliste` under Exposed schemas og slå på `pakkeliste.turer`, `pakkeliste.ting`, `pakkeliste.innstillinger` og `pakkeliste.alltid` under Exposed tables.
 
-**Handleliste**: kjør `20261117000000_handleliste.sql`. Legg til schemaet `handleliste` under Exposed schemas og slå på `handleliste.varer` under Exposed tables.
+**Handleliste**: kjør `20261117000000_handleliste.sql` (og `20261202000000_handleliste_lenke.sql` for lenker på varer). Legg til schemaet `handleliste` under Exposed schemas og slå på `handleliste.varer` under Exposed tables.
 
 **Push-varsler**: lag et nøkkelpar (VAPID) og legg det inn i Vercel (Production og Preview): `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (offentlig) og `VAPID_PRIVATE_KEY` (hemmelig, bare på serveren). Slå på utvidelsene `pg_cron` og `pg_net` under Database → Extensions før `20261024000000_push.sql` kjøres. Migrasjonen lager en jobb som kaller `/api/push/planter` hvert kvarter, med en hemmelighet som bare ligger i databasen (`privat.hemmeligheter`). Slå på `push_abonnement`, `push_innstillinger` og funksjonene `fjern_push_abonnement`, `push_planter_grunnlag` og `kalender.push_mottakere` under Exposed tables. På iPhone virker push bare når appen er lagt på hjemskjermen. Hver person slår det på under Meg → Varsler.
 
