@@ -13,11 +13,14 @@ export type Vare = {
   kilde: "middag" | null;
   /** Listen varen står på. Null er matlisten. */
   liste_id: string | null;
+  /** Lenke til varen, f.eks. i en nettbutikk, og miniatyrbildet siden deler. */
+  lenke: string | null;
+  lenke_bilde: string | null;
   avkrysset_at: string | null;
   created_at: string;
 };
 
-export const VAREFELT = "id, navn, antall, butikk, produkt, uten_pris, kilde, liste_id, avkrysset_at, created_at";
+export const VAREFELT = "id, navn, antall, butikk, produkt, uten_pris, kilde, liste_id, lenke, lenke_bilde, avkrysset_at, created_at";
 
 /** En egen liste, f.eks. «Jul». Matlisten er ikke en rad: den er varene uten liste_id. */
 export type EgenListe = { id: string; navn: string };

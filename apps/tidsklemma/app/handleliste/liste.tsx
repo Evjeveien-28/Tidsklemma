@@ -2,6 +2,7 @@
 
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { LenkeKnapp } from "./lenke-knapp";
 import { SveipRad } from "../sveip-rad";
 import { fjernVare, settAvkrysset } from "./actions";
 
@@ -15,6 +16,9 @@ export type Rad = {
   merke: "tilbud" | "anslag" | null;
   /** «−12 kr mot Kiwi»: hva varen sparer (bra) eller koster ekstra mot de andre butikkene i fordelingen. */
   forskjell: { tekst: string; bra: boolean } | null;
+  /** Lenke til varen, og miniatyrbildet fra siden. */
+  lenke: string | null;
+  bilde: string | null;
   avkrysset: boolean;
 };
 
@@ -75,6 +79,7 @@ export function Liste({ grupper }: { grupper: { navn: string | null; rader: Rad[
                       await fjernVare(r.id);
                     })
                   }
+                  ekstra={r.lenke && <LenkeKnapp lenke={r.lenke} bilde={r.bilde} navn={r.tittel} />}
                 >
                   <Innhold r={r} />
                 </SveipRad>
